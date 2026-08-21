@@ -1,0 +1,20 @@
+I am starting from lots of experience with coding out of necessity
+but a lack of formal education on how to code properly. For my
+undergraduate research, I did a lot of machine learning coding (specifically 
+with recurent neural networks) in Matlab and with Python. For my internship,
+I had to learn how to use linux and create GUIs for different programs. I also
+learned about hexidecimals and writing to registers. I feel confident about
+the ability to code when I am able to use AI as a tool alongside me coding. I 
+am not comfortable coding without online resources. I'm hoping to get from this course
+a better ability to follow the typical structures and strategies with coding.
+There are small things that I feel like are expected even with how you set up
+files that I was never taught. I also hope to get better at using GitHub and using
+shortcuts in the terminal rather than doing everything (like creating files) manually.
+The setup process was straightforward in terms of expectations. It took longer
+than it predicted it would take. I ran into a couple issues that I used the internet
+to help fix. For example, I made a repository before the instructions wanted me to 
+since I have used GitHub before, but then the settings I needed for it, I didn't set
+up correctly the first time so I had to figure out how to change it after the fact. I 
+also couldnt't find some of my folders once I made the directory, but then realized it's
+because Git wouldn't find the empty folders. There were also so many instructions that I
+am worried I missed something I was supposed to do. 
