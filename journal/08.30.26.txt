@@ -1,0 +1,7 @@
+Although I understood the logic beforehand from taking calc classes, it still surprises me how well you can use Euler's method
+to do approximations if you make your time step small enough. I definitely understand why you need different approximation methods
+because with a small enough timestep, you can be wasting lots of computational time. That is an issue I ran into with the bonus problem. 
+The first way I tried to code the loops caused the program to take an enormous amount of time relatively to find the necessary initial speed.
+I really enjoyed doing the percent errors because it helped quantify how accurate Euler's method actually was a certain timesteps which 
+gave me a good undertstanding of the differences between the exact values and the numerical values. It also takes a long time to use the numerical
+method for things like solving exact height when I feel like using physics theory and equations could sometimes be quicker. 
