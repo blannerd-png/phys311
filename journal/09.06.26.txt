@@ -1,0 +1,6 @@
+I learned that just because a graph looks like what you would expect physically, it can't always be trusted. A great example is that the graphs
+from my last lab looked good, but I had made small errors in the order of my position and velocity updates. Another example is how the graphs from
+mechanical energy looked as if it was a straight horizontal line because of the y-scale. When plotting the actual energy drift however, you can see
+that the mechanical energy does not stay constant and the numerical approximations caused extra energy to either be added or removed from the system
+depending on what method you were using. Another example is the expectation that the euler cromer method would create a graph where the error
+oscillates since that is what you expect from that method, but since the force does rely on position in uniform gravity, that was not the case. 
