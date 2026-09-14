@@ -1,0 +1,9 @@
+The hardest concept so far for me was understanding the phase space diagrams. I think in general,
+they look intimidating, but once you sit down and actually look at what the graph is comparing,
+and how the shape describes behavior, it is quiet easy to interpret and very helpful. I also think
+it was hard for me at first to grasp why euler cromer makes such a significant difference (positive) 
+for numerical approximations especially when doing things like oscillations were the difference
+is significant. This week specifically, I think the understanding of how Euler works in general finally 
+clicked because at first I would get slightly confused as to how it's different from the exact solution
+until this week when realizing there are some problems where you can use Euler where you may not even
+know the exact solution to a problem.
