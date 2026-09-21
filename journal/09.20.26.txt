@@ -1,0 +1,11 @@
+The hardest concept so far is realizing when you are building a simulation, it requires both a broad and in depth of the physical behaviour actually occurring. For expample,
+the first part of the lab this week makes it appear as if momentum is not being conserved, which you know to be against the laws of physics until you realize that the
+added momentum is actually coming from the external force or the impulse that walls are adding to the system which arent being accounted for. It's the same thing 
+when if you want to simulate someone in free fall, if you actually wanted it to be accurate, you would need the equations for force of drag to be correct for the body shape of 
+the person, you would need weight for momentum, you would need exact constant for gravity, you would need to know if there was any wind, maybe the temperature of the air, if they
+are wearing baggy clothing and all of these confounding factors that add an increasing level of complication to the code. Then you have to quantify those impacts to 
+try and decide at what point is the computational cost worth it? Does the accuracy of the model increase enough to justify that complexity/run time. When is it just good enough?
+What clicked this week/ what I learned was why temperature can be described by distributions and averages. In highschool, the way I always thought about a gas was that
+each particle is moving at the same speed and that speed is directly related to the temperature. I learned earlier in college that that was incorrect but I never 
+processed the exact physical reason until now. It also has helped me understand the Maxwell Boltzmann distribution because I had to google it to figure out if my graph
+was starting to look like it.
