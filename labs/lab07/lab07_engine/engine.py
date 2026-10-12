@@ -19,7 +19,7 @@ class Body:
         self.torque = 0.0
 
 
-# Forces: each uses apply(world), like the class lesson
+# Part A: Section 1
 class Gravity:
     def __init__(self, g=9.81):
         self.g = np.array([0.0, -g])
@@ -158,6 +158,7 @@ class World:
     def momentum(self):
         return sum((b.m*b.v for b in self.bodies), np.zeros(2))
 
+#Part A: Section 3
     def record(self, name, fn):
         self.recorders[name] = fn
         self.history[name] = []
