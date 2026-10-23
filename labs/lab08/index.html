@@ -1,0 +1,77 @@
+<!-- index.html -->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PHYS 311 | Lab 8 Projectile Integrator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+<main>
+  <header>
+    <span class="eyebrow">PHYS 311 · Lab 08</span>
+    <h1>Projectile motion laboratory</h1>
+    <p>Ported from the Python Lab 7 engine · fixed timestep, numerical comparisons, and live energy diagnostics</p>
+  </header>
+
+  <section class="toolbar">
+    <label>
+      Integrator
+      <select id="integrator">
+        <option value="verlet">Velocity Verlet</option>
+        <option value="cromer">Euler-Cromer</option>
+      </select>
+    </label>
+
+    <label>
+      Integration timestep
+      <select id="dt">
+        <option value="0.008333333333333333">1/120 s</option>
+        <option value="0.05">1/20 s</option>
+      </select>
+    </label>
+
+    <label class="check">
+      <input id="fixed" type="checkbox" checked>
+      Fixed timestep (accumulator)
+    </label>
+
+    <button id="pause">Pause</button>
+    <button id="reset">Reset</button>
+    <button id="lag">Simulate 300 ms lag</button>
+  </section>
+
+  <section class="sim">
+    <canvas
+      id="sim"
+      width="1000"
+      height="600"
+      aria-label="Projectile trajectory, axes, and live physics readout">
+    </canvas>
+  </section>
+
+  <section class="below">
+    <p>
+      <strong>Instructions:</strong>
+      Toggle fixed vs variable timestep, press
+      “Simulate 300 ms lag,” and watch the energy display.
+      Switch the integrator and timestep to compare numerical drift.
+      Trajectories restart when the projectile lands.
+    </p>
+
+    <button id="headless">
+      Run 1200-step headless comparison (Console)
+    </button>
+
+    <output id="results">
+      Open your browser's Console (F12) to see the Vec2 tests.
+    </output>
+  </section>
+</main>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>
