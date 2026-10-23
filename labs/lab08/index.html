@@ -1,77 +1,73 @@
-<!-- index.html -->
 
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PHYS 311 | Lab 8 Projectile Integrator</title>
+  <title>Week 8 -- Complete Canvas Reference</title>
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-<main>
-  <header>
-    <span class="eyebrow">PHYS 311 · Lab 08</span>
-    <h1>Projectile motion laboratory</h1>
-    <p>Ported from the Python Lab 7 engine · fixed timestep, numerical comparisons, and live energy diagnostics</p>
-  </header>
 
-  <section class="toolbar">
-    <label>
-      Integrator
-      <select id="integrator">
-        <option value="verlet">Velocity Verlet</option>
-        <option value="cromer">Euler-Cromer</option>
-      </select>
-    </label>
+<h1>PHYS 311 Lab 8 — Projectile Integrator</h1>
 
-    <label>
-      Integration timestep
-      <select id="dt">
-        <option value="0.008333333333333333">1/120 s</option>
-        <option value="0.05">1/20 s</option>
-      </select>
-    </label>
+<!-- Simulation controls -->
+<div class="panel">
+  <label>Integrator
+    <select id="integrator">
+      <option value="verlet">Velocity Verlet</option>
+      <option value="euler-cromer">Euler-Cromer</option>
+      <option value="euler">Euler</option>
+    </select>
+  </label>
 
-    <label class="check">
-      <input id="fixed" type="checkbox" checked>
-      Fixed timestep (accumulator)
-    </label>
+  <label>Scene
+    <select id="scene">
+      <option value="projectile">Projectile</option>
+      <option value="spring">Spring Oscillator</option>
+    </select>
+  </label>
 
-    <button id="pause">Pause</button>
-    <button id="reset">Reset</button>
-    <button id="lag">Simulate 300 ms lag</button>
-  </section>
+  <label>DT
+    <select id="dt">
+      <option value="120">1/120 s</option>
+      <option value="20">1/20 s</option>
+      <option value="240">1/240 s</option>
+    </select>
+  </label>
 
-  <section class="sim">
-    <canvas
-      id="sim"
-      width="1000"
-      height="600"
-      aria-label="Projectile trajectory, axes, and live physics readout">
-    </canvas>
-  </section>
+  <label>
+    <input type="checkbox" id="fixed" checked>
+    Fixed timestep
+  </label>
 
-  <section class="below">
-    <p>
-      <strong>Instructions:</strong>
-      Toggle fixed vs variable timestep, press
-      “Simulate 300 ms lag,” and watch the energy display.
-      Switch the integrator and timestep to compare numerical drift.
-      Trajectories restart when the projectile lands.
-    </p>
+  <button id="start">Start</button>
+  <button id="pause">Pause</button>
+  <button id="reset">Reset</button>
+  <button id="lag">Simulate Lag</button>
+  <button id="static">Static Scene</button>
+  <button id="validate">Run Test</button>
+</div>
 
-    <button id="headless">
-      Run 1200-step headless comparison (Console)
-    </button>
+<!-- Side-by-side simulation and graph -->
+<div class="simulation-layout">
+  <div class="simulation-panel">
+    <canvas id="sim" width="900" height="520"></canvas>
+  </div>
 
-    <output id="results">
-      Open your browser's Console (F12) to see the Vec2 tests.
-    </output>
-  </section>
-</main>
+  <div class="energy-panel">
+    <h2>Energy vs. Time</h2>
+    <canvas id="energyGraph" width="400" height="520"></canvas>
+  </div>
+</div>
+
+<p>
+  Open Chrome DevTools → Console for Vec2 tests.
+  Click the static scene button for the (2,3) m circle.
+  Use the checkbox, lag button, and integrator select
+  for Parts C2 and C3.
+</p>
+
+<div id="log">Ready.</div>
 
 <script type="module" src="main.js"></script>
-</body>
-</html>
