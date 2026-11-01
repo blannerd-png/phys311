@@ -7,10 +7,10 @@ const $=id=>document.getElementById(id),canvas=$('sim'),camera=new Camera(canvas
 const DT=1/120;let active,world,E0,paused=false,accumulator=0,lastTime=0,fps=60,physicsMs=0,renderMs=0;
 const names={billiards:'Billiards · Elastic / inelastic collisions',nbody:'Gravitational N-body · Orbital motion',springs:'Spring network · Oscillations'};
 function start(){const scene=$('scene').value, count=Number($('count').value),e=Number($('restitution').value);
-  active=createScene(scene,count,e);world=active.world;camera.view=active.view;
-  $('integrator').value=scene==='billiards'?'cromer':'verlet';world.demoJitterBug=$('jitter').checked;
+  active=createScene(scene,count,e);world=active.world;camera.setView(active.view);
+  $('integrator').value=scene==='billiards'?'cromer':'verlet';world.integrator=$('integrator').value==='verlet'?new VelocityVerlet():new EulerCromer();world.demoJitterBug=$('jitter').checked;
   $('collisionControls').hidden=scene!=='billiards';$('sceneName').textContent=names[scene];
-  E0=world.totalEnergy();accumulator=0;physicsMs=renderMs=0;
+  E0=world.totalEnergy();accumulator=0;lastTime=0;physicsMs=renderMs=0;
 }
 $('scene').addEventListener('change',start);$('count').addEventListener('change',start);
 $('restitution').addEventListener('input',()=>{$('eValue').textContent=Number($('restitution').value).toFixed(2);if(world)world.restitution=Number($('restitution').value);});
