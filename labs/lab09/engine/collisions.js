@@ -7,7 +7,7 @@ export function resolvePair(a,b,e=1,skipSeparating=false){
   const overlap=rs-dist;
   a.pos.addScaled(n,-overlap*ia/s);b.pos.addScaled(n,overlap*ib/s);
   const vn=(b.vel.x-a.vel.x)*n.x+(b.vel.y-a.vel.y)*n.y;
-  if(!skipSeparating && vn>0)return true; // IMPORTANT: prevent re-colliding separating balls
+  //if(!skipSeparating && vn>0)return true; // IMPORTANT: prevent re-colliding separating balls
   const impulse=-(1+e)*vn/s;
   a.vel.addScaled(n,-impulse*ia);b.vel.addScaled(n,impulse*ib);
   return true;
