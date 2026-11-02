@@ -1,0 +1,12 @@
+Porting my Python physics engine to JavaScript showed 
+me how important it is to have a modular design. 
+Many of the physics calculations and integrator 
+methods transferred directly because they were 
+already separated into classes and functions. 
+However, adding multiple bodies, collision handling, 
+and rendering made me realize how much easier development 
+is when each component has its own responsibility. 
+If I started over, I would organize the Python engine into
+ separate modules for bodies, forces, integrators, and collisions from the beginning. 
+ I would also keep the physics calculations completely separate from visualization 
+ so the engine could be reused and tested more easily.
