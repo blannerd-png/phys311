@@ -78,9 +78,12 @@ function change(id){
     if($('scene').value==='springs')for(const f of world.forces)if(f instanceof Spring)f.k=mouseSpring.k;
   }
   if(id==='gravity'){
-    if(gravity)gravity.g=n('gravity');
-    else world.forces.find(f=>f instanceof NewtonGravity).G=n('gravity');
+  if($('scene').value==='nbody'){
+    reset();
+    return;
   }
+  gravity.g=n('gravity');
+}
   // Parameter changes can add/remove energy: use a new baseline for comparison.
   if(['gravity','springK','restitution','drag'].includes(id)){E0=world.totalEnergy();history=[];lastHistory=-1;}
 }

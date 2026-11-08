@@ -5,7 +5,7 @@ import {NewtonGravity,Spring,Gravity} from './engine/forces.js';
 export const BOX={xMin:-9.2,xMax:9.2,yMin:-5.3,yMax:5.3};
 // Seeded PRNG ensures scene resets reconstruct exactly the same initial state.
 export function rng(seed=12345){return ()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};}
-export function createScene(name,count=20,e=1){
+export function createScene(name,count=20,e=1,G=1){
   if(name==='billiards'){
     const world=new World({bounds:{...BOX},restitution:e,integrator:new EulerCromer()});
     const rand=rng(1209);const radius=count>=200?.16:count>=100?.20:.24;
@@ -21,7 +21,7 @@ export function createScene(name,count=20,e=1){
   if(name==='nbody'){
     const w=new World({integrator:new VelocityVerlet(),collisionsEnabled:false});
     // Central attraction in normalized units: stable circular reference orbits.
-    const G=1,M=20;w.add(new Body({m:M,radius:.32,color:'#ffd56b'}));
+    const M=20;w.add(new Body({m:M,radius:.32,color:'#ffd56b'}));
     for(let i=0;i<4;i++){
       const r=2.2+i*1.45,theta=i*1.5, speed=Math.sqrt(G*M/r);
       w.add(new Body({x:r*Math.cos(theta),y:r*Math.sin(theta),vx:-speed*Math.sin(theta),vy:speed*Math.cos(theta),m:.001,radius:.12+i*.013,color:['#7dd3fc','#f9a8d4','#a7f3d0','#c4b5fd'][i]}));
