@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>PHYS 311 · Lab 10 Interactive Physics</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<header><div><p class="eyebrow">PHYS 311 · MODULE 10</p><h1>Interactive Physics Lab</h1><p class="subtitle">Explore how collisions, gravity, and springs change motion and energy. Grab a body or launch one, then watch the conservation HUD.</p></div><span class="tag">LIVE SIMULATION</span></header>
+<main><section class="stage"><div class="topline"><span id="sceneName">Billiards · Collisions and conservation</span><span>Fixed Δt = 1/120 s</span></div><canvas id="sim" width="1000" height="600" tabindex="0" aria-label="Interactive 2D physics simulation. Use the Grab or Slingshot mode selector, then interact with objects using pointer or touch.">Your browser does not support Canvas. The control panel and conservation readouts remain available.</canvas><div class="bottomline"><span id="cursorReadout" role="status">Move pointer onto canvas</span><span id="status">Running</span></div><p class="hint">Grab mode: drag a ball with a damped spring. Slingshot mode: press, pull back, and release. Dashed arc predicts the gravity-only path (collisions and drag are not included).</p></section>
+<aside><section class="panel"><h2>Experiment</h2>
+<label for="scene">Scene</label><select id="scene"><option value="billiards">01 · Billiards / ball pit</option><option value="nbody">02 · Gravitational N-body</option><option value="springs">03 · Spring network</option></select>
+<label for="mode">Pointer interaction</label><select id="mode"><option value="grab">Grab and drag existing balls</option><option value="slingshot">Slingshot: launch new ball</option></select>
+<label for="integrator">Integrator</label><select id="integrator"><option value="cromer">Euler–Cromer</option><option value="verlet">Velocity Verlet</option><option value="euler">Forward Euler (compare drift)</option></select>
+<div id="collisionControls"><label for="restitution">Restitution e <output id="eValue">1.00</output></label><input id="restitution" type="range" min="0" max="1" step="0.05" value="1"><label for="count">Ball count</label><select id="count"><option>20</option><option>50</option><option>100</option><option>200</option></select></div>
+<label for="gravity"><span id="gravityLabel">Downward gravity g</span> <output id="gValue">0.00</output></label><input id="gravity" type="range" min="0" max="5" step="0.1" value="0"><span class="sliderHint" id="gravityHint">Downward acceleration (m/s²)</span>
+<label for="drag">Quadratic drag coefficient <output id="dragValue">0.00</output></label><input id="drag" type="range" min="0" max="1" step="0.05" value="0">
+<label for="springK"><span id="springLabel">Grab-spring stiffness k</span> <output id="kValue">85</output></label><input id="springK" type="range" min="10" max="180" step="5" value="85">
+<label for="speed">Playback speed <output id="speedValue">1.00×</output></label><input id="speed" type="range" min="0.25" max="2" step="0.25" value="1">
+<div class="buttons"><button id="pause" type="button">Pause</button><button id="step" type="button">Step +Δt</button><button id="reset" type="button">Reset</button></div>
+<p class="note">Keys (when not editing a control): Space pause, . single-step, R reset, −/+ playback speed. Tab and Enter/Space operate standard controls.</p></section>
+<section class="panel"><h2>Show physics</h2>
+<label class="check" for="trails"><input type="checkbox" id="trails" checked> Motion trails</label>
+<label class="check" for="vectors"><input type="checkbox" id="vectors" checked> Velocity vectors (green)</label>
+<label class="check" for="forceVectors"><input type="checkbox" id="forceVectors"> Force vectors (purple)</label>
+<label class="check" for="flash"><input type="checkbox" id="flash" checked> Collision contact flashes</label>
+<label class="check" for="energyChart"><input type="checkbox" id="energyChart" checked> Live total-energy chart</label>
+<p class="note">Velocity arrows indicate movement direction and relative speed. Force arrows indicate the net applied force. Trails show recent trajectories; flashes mark contacts. The chart shows changes to total mechanical energy.</p></section>
+<section class="panel"><h2>Live conservation diagnostics</h2><div id="hud" aria-live="off"></div><p class="note">Energy can change with drag, moving/dragged bodies, inelastic collisions, or changed parameters. Wall collisions apply external impulses, so particle-only momentum need not stay constant.</p></section>
+<section class="panel"><h2>Performance</h2><button id="benchmark" type="button">Benchmark 20–200 bodies</button><div id="benchResults" class="tablewrap"></div></section></aside></main>
+<footer>PHYS 311 · Lab 10 · Engine (Lab 09) + Input/UI + Canvas renderer. Fixed timestep; separate physics and presentation.</footer>
+<script type="module" src="main.js"></script></body></html>

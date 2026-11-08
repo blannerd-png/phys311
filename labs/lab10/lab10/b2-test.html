@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PHYS 311 Lab 9 — B2 Conservation Test</title>
+<style>
+  :root { color-scheme:dark; font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif; }
+  body {background:#091321;color:#e9f2ff;max-width:900px;margin:45px auto;padding:0 22px;line-height:1.5}
+  h1 {font-size:1.7rem;margin-bottom:8px} p {color:#b9cce1}
+  .panel {background:#132238;border:1px solid #334862;border-radius:14px;padding:22px;margin:22px 0}
+  button {background:#ff8200;color:#07111f;font-weight:750;border:0;padding:12px 18px;border-radius:8px;cursor:pointer;font-size:1rem}
+  button:disabled {opacity:.55;cursor:wait}
+  table {width:100%;border-collapse:collapse;font-size:.9rem;margin:18px 0}
+  td,th {border-bottom:1px solid #39506b;padding:10px 7px;text-align:right;font-variant-numeric:tabular-nums}
+  td:first-child,th:first-child {text-align:left}
+  .scroll {overflow-x:auto} .pass {color:#74e8a6} .fail {color:#ff918b}
+  code {color:#a8ddff} pre {white-space:pre-wrap;overflow-wrap:anywhere;background:#091321;padding:16px;border-radius:8px}
+  .small {font-size:.87rem} #status {min-height:1.5em}
+</style>
+</head>
+<body>
+<h1>Lab 9 · B2 Conservation Tests</h1>
+<p>Standalone browser test using your existing Lab 9 physics engine. It does not modify the main simulation or its files.</p>
+<section class="panel">
+  <p><strong>Test conditions:</strong> 20 moving balls, no gravity, no walls, fixed Δt = 1/120 s, 7,200 steps (60 simulated seconds). Runs both elastic (e = 1.0) and inelastic (e = 0.8) collisions.</p>
+  <button id="run">Run B2 tests</button>
+  <p id="status" role="status">Ready. Open this page using VS Code Live Server.</p>
+  <div id="results"></div>
+  <button id="copy" hidden>Copy results for write-up</button>
+</section>
+<p class="small"><strong>Physics note:</strong> This wall-free test isolates ball–ball impulses so total momentum is conserved. Your regular billiards scene has fixed walls, which exert external impulses and can change the balls' momentum. The 20 balls may spread apart during this isolated test; the test also checks whether any collisions occurred.</p>
+<script type="module">
+import { World } from './engine/world.js';
+import { Body } from './engine/body.js';
+import { VelocityVerlet } from './engine/integrators.js';
+
+const DT = 1 / 120;
+const STEPS = 7200;
+const runButton = document.getElementById('run');
+const copyButton = document.getElementById('copy');
+const status = document.getElementById('status');
+const output = document.getElementById('results');
+let savedText = '';
+
+function makeWorld(e) {
+  const world = new World({ integrator:new VelocityVerlet(), bounds:null, restitution:e });
+  // Same initial states as the project tests.mjs file.
+  for (let i = 0; i < 20; i++) {
+    const j = i % 5;
+    const k = Math.floor(i / 5);
+    world.add(new Body({
+      x:-4 + 2*j, y:-3 + 2*k,
+      vx:0.1*(j-2) + (i%2 ? 1 : -1),
+      vy:0.1*(k-1.5) + (i%3 ? -0.5 : 0.5),
+      radius:0.35
+    }));
+  }
+  return world;
+}
+
+async function runCase(e) {
+  const world=makeWorld(e);
+  const p0=world.totalMomentum();
+  const E0=world.totalEnergy();
+  let prev=E0, maxIncrease=0, energyDeclines=0;
+  for(let i=0;i<STEPS;i++) {
+    world.step(DT);
+    const current=world.totalEnergy();
+    maxIncrease=Math.max(maxIncrease,current-prev);
+    if(current<prev-1e-10)energyDeclines++;
+    prev=current;
+    if((i+1)%600===0){
+      status.textContent=`Testing e=${e.toFixed(1)}: ${(i+1)/120} / 60 simulated seconds`;
+      await new Promise(requestAnimationFrame);
+    }
+  }
+  const p1=world.totalMomentum();
+  const E1=world.totalEnergy();
+  const difference=Math.hypot(p1.x-p0.x,p1.y-p0.y);
+  const drift=100*(E1-E0)/Math.abs(E0);
+  return {e,p0,p1,E0,E1,difference,drift,maxIncrease,energyDeclines,
+    momentumPass:difference<1e-8,
+    energyPass:e===1?Math.abs(E1-E0)<1e-8:E1<E0,
+    monotonicPass:maxIncrease<1e-9};
+}
+
+function num(n,d=6){return n.toFixed(d)}
+function renderResults(rows){
+  const body=rows.map(r=>`<tr><td>${r.e.toFixed(1)}</td><td>${num(r.E0,5)}</td><td>${num(r.E1,5)}</td><td>${num(r.drift,5)}%</td><td>${num(r.p0.length())}</td><td>${num(r.p1.length())}</td><td class="${r.momentumPass&&r.energyPass&&r.monotonicPass?'pass':'fail'}">${r.momentumPass&&r.energyPass&&r.monotonicPass?'PASS':'CHECK'}</td></tr>`).join('');
+  const details=rows.map(r=>`<h3>e = ${r.e.toFixed(1)}</h3><pre>pₓ: ${num(r.p0.x,10)} → ${num(r.p1.x,10)}\npᵧ: ${num(r.p0.y,10)} → ${num(r.p1.y,10)}\n|Δp| = ${r.difference.toExponential(4)}\nLargest stepwise energy increase = ${r.maxIncrease.toExponential(4)} J\nEnergy-decreasing steps = ${r.energyDeclines}\nMomentum conserved to 1e-8: ${r.momentumPass?'PASS':'CHECK'}\nEnergy behavior: ${r.energyPass?'PASS':'CHECK'}\nEnergy nonincreasing to 1e-9 J: ${r.monotonicPass?'PASS':'CHECK'}</pre>`).join('');
+  output.innerHTML=`<h2>60-second results</h2><div class="scroll"><table><thead><tr><th>e</th><th>E₀ (J)</th><th>E₆₀ (J)</th><th>Drift</th><th>|p|₀</th><th>|p|₆₀</th><th>Checks</th></tr></thead><tbody>${body}</tbody></table></div>${details}`;
+  savedText='Lab 9 B2: 20 balls, no external forces or walls, Δt=1/120 s, t=60 s\n'+rows.map(r=>`e=${r.e.toFixed(1)}: E0=${num(r.E0,8)} J, E60=${num(r.E1,8)} J, drift=${num(r.drift,7)}%, p0=(${num(r.p0.x,10)}, ${num(r.p0.y,10)}), p60=(${num(r.p1.x,10)}, ${num(r.p1.y,10)}), |Δp|=${r.difference.toExponential(4)}, max stepwise energy increase=${r.maxIncrease.toExponential(4)} J`).join('\n');
+  copyButton.hidden=false;
+}
+runButton.addEventListener('click',async()=>{
+  runButton.disabled=true;copyButton.hidden=true;output.textContent='';
+  try{
+    const rows=[];
+    for(const e of [1,0.8]) rows.push(await runCase(e));
+    renderResults(rows);
+    status.textContent='Both tests completed. Copy the results or take a screenshot.';
+  }catch(err){status.textContent=`Error: ${err.message}. Make sure b2-test.html is in lab09/ beside engine/.`;console.error(err)}
+  finally{runButton.disabled=false}
+});
+copyButton.addEventListener('click',async()=>{
+  try{await navigator.clipboard.writeText(savedText);status.textContent='Results copied.'}
+  catch {status.textContent='Copy not available in this browser. Select the results from the table instead.'}
+});
+</script>
+</body>
+</html>
