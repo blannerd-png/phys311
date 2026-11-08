@@ -1,6 +1,4 @@
 # PHYS 311 — Lab 10: Interactive Physics Lab
-
-
 This is an 'interactive browser' simulation built from the lab09 (and previous) physics engine and simulation body. The main goal of this simulation is to be able to experience the way energy is conserved during collisions. The original N-body orbit and spring-network scenes are also available. A player can drag a ball using a physically modeled damped spring, launch a new ball with a slingshot, and adjust physics parameters while monitoring energy, momentum, and the simulated time with the HUD. To access the website, you just need to copy the provided link or open the index.html through VS code "open with a live server" option.
 
 ## 2. Physics concepts
