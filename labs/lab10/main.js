@@ -23,7 +23,11 @@ const n=id=>parseFloat($(id).value);
 function integrator(){return $('integrator').value==='verlet'?new VelocityVerlet():$('integrator').value==='euler'?new Euler():new EulerCromer();}
 function makeScene(){
   const scene=$('scene').value;
-  active=createScene(scene,Number($('count').value),n('restitution'));
+  // Orbital scenes are modeled without drag so their trajectories remain stable.
+  if(scene==='nbody')$('drag').value='0';
+  $('drag').disabled=scene==='nbody';
+  $('springK').disabled=scene!=='springs';
+  active=createScene(scene,Number($('count').value),n('restitution'),n('gravity'));
   world=active.world;
   world.integrator=integrator();
   camera.setView(active.view);
@@ -38,8 +42,20 @@ function makeScene(){
     for(const f of world.forces)if(f instanceof Spring)f.k=n('springK');
   } else {
     gravity=null;
-    drag=world.addForce(new Drag(n('drag')));
-    world.forces.find(f=>f instanceof NewtonGravity).G=n('gravity');
+    drag=world.addForce(new Drag(0));
+    const G=n('gravity');
+    world.forces.find(f=>f instanceof NewtonGravity).G=G;
+    // Match each initial orbital velocity to the selected gravity strength.
+    // This also works if scenes.js still uses its original G=1 default.
+    const center=world.bodies[0];
+    for(const b of world.bodies.slice(1)){
+      const dx=b.pos.x-center.pos.x,dy=b.pos.y-center.pos.y;
+      const r=Math.hypot(dx,dy);
+      if(r===0)continue;
+      const direction=dx*b.vel.y-dy*b.vel.x>=0?1:-1;
+      const v=Math.sqrt(G*center.m/r)*direction;
+      b.vel.set(-dy/r*v,dx/r*v);
+    }
   }
   mouseSpring=new MouseSpring();mouseSpring.k=n('springK');
   world.addForce(mouseSpring);
@@ -65,25 +81,49 @@ function refreshReadouts(){
   for(const [id,out,places] of [['restitution','eValue',2],['gravity','gValue',2],['drag','dragValue',2],['springK','kValue',0],['speed','speedValue',2]])$(out).textContent=n(id).toFixed(places)+(id==='speed'?'×':'');
 }
 function change(id){
-  if(id==='scene'||id==='count') {if(id==='scene'){if($('scene').value==='nbody'){$('gravity').value='1';$('springK').value='85';} else if($('scene').value==='springs'){$('gravity').value='1.2';$('springK').value='13';} else {$('gravity').value='0';$('springK').value='85';}}reset();return;}
+  if(id==='scene'||id==='count') {
+    if(id==='scene'){
+      const scene=$('scene').value;
+      if(scene==='nbody'){
+        $('gravity').value='1';$('drag').value='0';$('springK').value='85';
+        $('integrator').value='verlet';
+      } else if(scene==='springs'){
+        $('gravity').value='1.2';$('springK').value='13';
+        $('integrator').value='verlet';
+      } else {
+        $('gravity').value='0';$('springK').value='85';
+        $('integrator').value='cromer';
+      }
+    }
+    reset();return;
+  }
   if(id==='integrator'){world.integrator=integrator();return;}
   if(['trails','vectors','forceVectors','flash','energyChart'].includes(id)){flags[id]=$(id).checked;return;}
   if(id==='mode') {pointer?.clear();return;}
   refreshReadouts();
   if(id==='speed'){speed=clamp(n('speed'),.25,2);return;}
   if(id==='restitution')world.restitution=clamp(n('restitution'),0,1);
-  if(id==='drag')drag.c=clamp(n('drag'),0,1);
+  if(id==='drag'){
+    if($('scene').value==='nbody'){
+      $('drag').value='0';
+      $('dragValue').textContent='0.00';
+      if(drag)drag.c=0;
+      return;
+    }
+    if(drag)drag.c=n('drag');
+  }
   if(id==='springK'){
+    if($('scene').value!=='springs')return;
     mouseSpring.k=clamp(n('springK'),10,180);
-    if($('scene').value==='springs')for(const f of world.forces)if(f instanceof Spring)f.k=mouseSpring.k;
+    for(const f of world.forces)if(f instanceof Spring)f.k=mouseSpring.k;
   }
   if(id==='gravity'){
-  if($('scene').value==='nbody'){
-    reset();
-    return;
+    if($('scene').value==='nbody'){
+      reset(); // Recreate orbits with velocities suited to the new G.
+      return;
+    }
+    if(gravity)gravity.g=n('gravity');
   }
-  gravity.g=n('gravity');
-}
   // Parameter changes can add/remove energy: use a new baseline for comparison.
   if(['gravity','springK','restitution','drag'].includes(id)){E0=world.totalEnergy();history=[];lastHistory=-1;}
 }
