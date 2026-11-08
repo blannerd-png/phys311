@@ -11,6 +11,10 @@ import {$,wireControls} from './ui.js';
 const DT=1/120,canvas=$('sim'),camera=new Camera(canvas),renderer=new Renderer(canvas,camera);
 let active,world,E0,paused=false,accumulator=0,lastTime=0,fps=60,physicsMs=0,renderMs=0,speed=1;
 let gravity,drag,mouseSpring=new MouseSpring(),pointer,history=[],lastHistory=-1;
+/* Added for lab10 bonus*/
+let exportRows=[];
+let nextExportTime=0.1;
+const MAX_EXPORT_ROWS=200000;
 let flags={trails:true,vectors:true,forceVectors:false,flash:true,energyChart:true};
 const overlay={cursor:null,aimStart:null,aimEnd:null,flashes:[]};
 const names={billiards:'Billiards · Collisions and conservation',nbody:'N-body gravity · Orbital motion',springs:'Spring network · Oscillations'};
@@ -39,8 +43,12 @@ function makeScene(){
   }
   mouseSpring=new MouseSpring();mouseSpring.k=n('springK');
   world.addForce(mouseSpring);
+  /* edited to make compatible with lab10 bonus*/
   E0=world.totalEnergy();
   history=[];lastHistory=-1;overlay.flashes=[];
+  exportRows=[];
+  nextExportTime=0.1;
+  recordSnapshot();
   accumulator=0;lastTime=0;
   $('collisionControls').hidden=scene!=='billiards';
   $('sceneName').textContent=names[scene];
@@ -83,9 +91,33 @@ function stepOnce(){
   renderScene();
 }
 function speedKey(delta){const value=clamp(speed+delta,.25,2);$('speed').value=String(value);change('speed');}
+/* recording function added for bonus lab10 */
+function recordSnapshot(){
+  if(exportRows.length+world.bodies.length>MAX_EXPORT_ROWS)return;
+
+  const totalEnergy=world.totalEnergy();
+
+  for(const b of world.bodies){
+    exportRows.push([
+      world.time,
+      b.id,
+      b.pos.x,
+      b.pos.y,
+      b.vel.x,
+      b.vel.y,
+      b.kineticEnergy(),
+      totalEnergy
+    ]);
+  }
+}
 function stepPhysics(){
   const before=flags.flash?world.bodies.map(b=>({x:b.pos.x,y:b.pos.y,vx:b.vel.x,vy:b.vel.y})):null;
   world.step(DT);
+  /*adding data recording at every .1s for bonus lab 10*/
+  if(world.time+1e-9>=nextExportTime){
+  recordSnapshot();
+  nextExportTime+=0.1;
+}
   if(flags.flash&&world.collisionsEnabled&&world.bodies.length<110){
     for(let i=0;i<world.bodies.length;i++)for(let j=i+1;j<world.bodies.length;j++){
       const a=world.bodies[i],b=world.bodies[j],d=a.pos.sub(b.pos);
@@ -139,6 +171,28 @@ async function benchmark(){
     $('benchResults').innerHTML='<table><thead><tr><th>Bodies</th><th>Physics ms</th><th>Render ms</th></tr></thead><tbody>'+rows.map(v=>`<tr><td>${v.size}</td><td>${v.p.toFixed(3)}</td><td>${v.r.toFixed(3)}</td></tr>`).join('')+'</tbody></table>';
   }finally{button.disabled=false;if(!oldPaused)togglePause();accumulator=0;lastTime=0;}
 }
+/*added control for downloading csv lab10 bonus*/
+function downloadCSV(){
+  const header="time,body_id,x,y,vx,vy,kinetic_energy,total_energy";
+
+  const rows=exportRows.map(row=>row.join(","));
+  const csv=[header,...rows].join("\n");
+
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+
+  const link=document.createElement("a");
+  link.href=url;
+  link.download="lab10_simulation_data.csv";
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+$("downloadCSV").addEventListener("click",downloadCSV);
 wireControls({change,pause:togglePause,step:stepOnce,reset,benchmark,speed:speedKey});
 for(const key of Object.keys(flags))$(key).checked=flags[key];
 makeScene();
