@@ -22,9 +22,7 @@
 <label class="check" for="energyChart"><input type="checkbox" id="energyChart" checked> Live total-energy chart</label>
 <p class="note">Velocity arrows indicate movement direction and relative speed. Force arrows indicate the net applied force. Trails show recent trajectories; flashes mark contacts. The chart shows changes to total mechanical energy.</p></section>
 <section class="panel"><h2>Live conservation diagnostics</h2><div id="hud" aria-live="off"></div><p class="note">Energy can change with drag, moving/dragged bodies, inelastic collisions, or changed parameters. Wall collisions apply external impulses, so particle-only momentum need not stay constant.</p></section>
-<section class="panel"><h2>Performance</h2><button id="benchmark" type="button">Benchmark 20–200 bodies</button><div id="benchResults" class="tablewrap"></div></section></aside></main>
-<footer>PHYS 311 · Lab 10 · Engine (Lab 09) + Input/UI + Canvas renderer. Fixed timestep; separate physics and presentation.</footer>
-<script type="module" src="main.js"></script></body></html>
+<section class="panel"><h2>Performance</h2><button id="benchmark" type="button">Benchmark 20–200 bodies</button><div id="benchResults" class="tablewrap"></div></section>
 <!-- Bonus for Lab 10 -->
 <section class="panel">
   <h2>Export Simulation Data</h2>
@@ -32,3 +30,6 @@
   velocities, and energy values for analysis in Python or Excel.</p>
   <button id="downloadCSV" type="button">Download CSV</button>
 </section>
+</aside></main>
+<footer>PHYS 311 · Lab 10 · Engine (Lab 09) + Input/UI + Canvas renderer. Fixed timestep; separate physics and presentation.</footer>
+<script type="module" src="main.js"></script></body></html>
