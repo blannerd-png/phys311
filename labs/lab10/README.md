@@ -38,3 +38,9 @@ For the quantitative test: 20 balls, no external forces or walls, 7,200 steps at
 
 Both tests passed conservation checks: at e=1, total energy stayed constant to floating-point accuracy. At e=.8, energy decreased due to inelastic collisions, while momentum remained conserved. The main billiards scene has walls, so particle-only momentum there need not remain constant. Energy diagnostics can also shift during pointer-driven interactions, damping, or changed parameters.
 
+## 5. Known limitations
+- The trajectory preview is a simplified gravity-only prediction, not a full forward solve with drag and contacts, and is not accurate for Newtonian N-body or spring-network scenes
+- Grabbing or launching bodies adds externally supplied work/energy, so energy drift is not a strict closed-system conservation test during interaction.
+- Collision flashes are a lightweight contact heuristic, limited to scenes with fewer than 110 balls for performance; walls have no flashes.
+- Pointer manipulation needs mouse/touch/pen; keyboard navigation covers control panel operations, not moving individual bodies inside the canvas.
+- Automated JavaScript tests were run successfully; final browser, phone, and deployed-link testing must be performed by the student before submission.
