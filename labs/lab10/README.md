@@ -1,6 +1,5 @@
 # PHYS 311 — Lab 10: Interactive Physics Lab
-
-
+## 1. The simulation (what is it?)
 This is an 'interactive browser' simulation built from the lab09 (and previous) physics engine and simulation body. The main goal of this simulation is to be able to experience the way energy is conserved during collisions. The original N-body orbit and spring-network scenes are also available. A player can drag a ball using a physically modeled damped spring, launch a new ball with a slingshot, and adjust physics parameters while monitoring energy, momentum, and the simulated time with the HUD. To access the website, you just need to copy the provided link or open the index.html through VS code "open with a live server" option.
 
 ## 2. Physics concepts
@@ -8,7 +7,7 @@ A lot of physics concepts are tested as well as mathematical techniques and how 
 The dt step uses a constant DT = 1/120 s. The speed slider changes how fast fixed steps accumulate, not DT.
 Pointer dragging is a force that runs during the normal force phase, so collisions can still occur. Slingshot launch speed comes from the pullback distance. The trajectory preview models uniform downward gravity: it intentionally does not model drag, collisions, or N-body forces.
 
-## 3. User Information
+## 3. User/ Controls Information
 | Control | Behavior | Keyboard |
 |---|---|---|
 | Scene | Switch between billiards, N-body gravity, springs | Tab, arrows |
@@ -27,7 +26,7 @@ Pointer dragging is a force that runs during the normal force phase, so collisio
 
 The cursor crosshair and on-screen readout are expressed in **world meters**. The canvas responds to pointer/touch and uses `getBoundingClientRect()` ratios to correct CSS scaling. The canvas scales with the window and device pixel ratio; keyboard-operated **HTML controls** remain accessible independently of pointer manipulation.
 
-## 4. Physics Testing
+## 4. Physics Testing (how I know it's correct)
 `npm test` runs the `tests.mjs` automated checks. These assert scene reset reproducibility, 3 integrators, time stepping, spring pull direction, point selection, trajectory generation, and 60-second isolated collision conservation tests.
 For the quantitative test: 20 balls, no external forces or walls, 7,200 steps at `DT = 1/120 s`, starting mechanical energy: 12.775 J
 
