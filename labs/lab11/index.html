@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PET Scanner · Particle-by-particle physics model</title><link rel="icon" href="data:,"><link rel="stylesheet" href="style.css"></head>
+<body>
+<header><div><p class="eyebrow">PHYS 311 · INTERACTIVE PHYSICS</p><h1>How a PET scanner sees inside the body</h1>
+<p class="subtitle">Each tracer decay releases a positron that annihilates into two back-to-back 511 keV photons. The detector ring records pairs that arrive together, and thousands of those lines become an image. Toggle the physics to see what blurs it.</p></div>
+<span class="tag">LIVE SIMULATION</span></header>
+<main>
+<div class="leftcol">
+<section class="stage">
+  <div class="topline"><span id="phantomName">Torso slice with two lesions</span><span id="isotopeName">Fluorine-18</span></div>
+  <canvas id="sim" width="900" height="900" tabindex="0" aria-label="PET scanner: detector ring around a body slice. Drag a dashed lesion to move it, or click inside the body to add a lesion.">Your browser does not support Canvas. The controls, counters and conservation checks remain available.</canvas>
+  <div class="bottomline"><span id="cursorReadout" role="status">Move pointer onto canvas</span><span id="status">Running</span></div>
+  <p id="eventCaption" class="caption" aria-live="off">Waiting for the first decay…</p>
+  <div class="legend" aria-label="Legend">
+    <span><i class="line true"></i>True coincidence (solid)</span>
+    <span><i class="line scatter"></i>Scattered (dashed)</span>
+    <span><i class="line random"></i>Random (dotted)</span>
+    <span><i class="dot gold"></i>Photon · <i class="dot orange"></i>after Compton scatter (×)</span>
+    <span>○ green = accepted · grey = energy-rejected · red = missed</span>
+  </div>
+  <p class="hint">Drag a dashed lesion to move it, or click inside the body to add one (torso and uniform phantoms). Moving the tracer restarts the scan.</p>
+</section>
+<section class="results">
+  <div class="imgcard"><canvas id="truth" width="520" height="520" aria-label="True tracer distribution"></canvas></div>
+  <div class="imgcard"><canvas id="image" width="520" height="520" aria-label="Reconstructed PET image"></canvas></div>
+  <div class="imgcard"><canvas id="sinogram" width="520" height="520" aria-label="Sinogram of recorded coincidences"></canvas></div>
+  <div class="imgcard wide"><canvas id="spectrum" width="1040" height="300" aria-label="Energy spectrum of detected photons with the energy window shaded"></canvas></div>
+</section>
+</div>
+<aside>
+<section class="panel"><h2>Experiment</h2>
+  <label for="phantom">Phantom</label><select id="phantom">
+    <option value="torso">Torso slice with two lesions</option><option value="derenzo">Resolution rods (Derenzo)</option>
+    <option value="uniform">Uniform water cylinder</option><option value="points">Point sources in air</option></select>
+  <label for="isotope">Tracer isotope (positron energy)</label><select id="isotope">
+    <option value="F-18">F-18 · mean range 0.57 mm</option><option value="C-11">C-11 · mean range 1.0 mm</option>
+    <option value="Ga-68">Ga-68 · mean range 2.7 mm</option><option value="Rb-82">Rb-82 · mean range 5.3 mm</option></select>
+  <label for="recon">Reconstruction</label><select id="recon">
+    <option value="fbp">Filtered backprojection (FBP)</option><option value="bp">Simple backprojection (unfiltered)</option>
+    <option value="mlem">MLEM (iterative, statistical)</option><option value="tof">Time-of-flight backprojection</option></select>
+  <div class="buttons"><button id="pause" type="button">Pause</button><button id="step" type="button">Step 1 decay</button><button id="clear" type="button">Restart scan</button></div>
+  <div class="buttons two"><button id="addLesion" type="button">Add lesion</button><button id="removeLesions" type="button">Remove added</button></div>
+  <p class="note">Keys (when not on a control): Space pause, . single decay, R restart, −/+ acquisition speed.</p>
+</section>
+<section class="panel"><h2>Physics switches</h2>
+  <label class="check" for="positronRange"><input type="checkbox" id="positronRange" checked> Positron range (travel before annihilating)</label>
+  <label class="check" for="nonCollinearity"><input type="checkbox" id="nonCollinearity" checked> Non-collinearity (photons not exactly 180°)</label>
+  <label class="check" for="attenuation"><input type="checkbox" id="attenuation" checked> Photon attenuation in tissue</label>
+  <label class="check" for="scatter"><input type="checkbox" id="scatter" checked> Compton scattering (else attenuated photons vanish)</label>
+  <label class="check" for="attenCorr"><input type="checkbox" id="attenCorr"> Attenuation correction in reconstruction</label>
+</section>
+<section class="panel"><h2>Scanner settings</h2>
+  <label for="activity">Activity in slice <output id="activityValue"></output></label><input id="activity" type="range" min="0" max="100" step="1" value="40">
+  <label for="windowLow">Energy window lower edge <output id="windowLowValue"></output></label><input id="windowLow" type="range" min="200" max="500" step="5" value="425">
+  <label for="energyRes">Energy resolution (FWHM) <output id="energyResValue"></output></label><input id="energyRes" type="range" min="4" max="25" step="1" value="12">
+  <label for="coincWindow">Coincidence window τ <output id="coincWindowValue"></output></label><input id="coincWindow" type="range" min="1" max="20" step="0.5" value="4">
+  <label for="ctr">Timing resolution (CTR) <output id="ctrValue"></output></label><input id="ctr" type="range" min="100" max="1000" step="50" value="400">
+  <label for="speed">Acquisition speed <output id="speedValue"></output></label><input id="speed" type="range" min="0" max="6" step="1" value="4">
+  <span class="sliderHint">Speed 1 decay/frame lets you follow single events.</span>
+</section>
+<section class="panel"><h2>Show</h2>
+  <label class="check" for="lors"><input type="checkbox" id="lors" checked> Recent lines of response</label>
+  <label class="check" for="animate"><input type="checkbox" id="animate" checked> Slow-motion replay of one decay</label>
+  <label class="check" for="inset"><input type="checkbox" id="inset" checked> Zoomed positron track</label>
+</section>
+<section class="panel"><h2>Live diagnostics</h2><div id="hud" aria-live="off"></div>
+  <p class="note">The image counts every prompt coincidence. Scatters and randoms are not removed, so they add haze, exactly as on a real scanner without corrections.</p></section>
+<section class="panel"><h2>Export</h2><p class="note">List-mode data: every coincidence with crystals, time difference, energies and type.</p>
+  <button id="downloadCSV" type="button">Download list-mode CSV</button></section>
+</aside>
+</main>
+<footer>Built on the PHYS 311 Lab 9/10 engine: positrons are Bodies integrated by World + Euler–Cromer under a stopping force and a scattering force; annihilation conserves energy and momentum exactly; photons are Monte Carlo rays. A 2D teaching model, not a clinical simulator.</footer>
+<script type="module" src="main.js"></script></body></html>

@@ -1,0 +1,1 @@
+{"name":"phys311-pet-scanner","private":true,"type":"module","scripts":{"test":"node tests.mjs"}}
