@@ -23,6 +23,20 @@ const n=id=>parseFloat($(id).value);
 function integrator(){return $('integrator').value==='verlet'?new VelocityVerlet():$('integrator').value==='euler'?new Euler():new EulerCromer();}
 function makeScene(){
   const scene=$('scene').value;
+    // Disable sliders that do not apply to the selected scene
+  if(scene==='nbody'){
+    $('drag').value='0';
+  }
+
+  $('drag').disabled=scene==='nbody';
+  $('springK').disabled=scene!=='springs';
+
+  // Make disabled sliders visibly greyed out
+  for(const id of ['drag','springK']){
+    const slider=$(id);
+    slider.style.opacity=slider.disabled?'0.35':'1';
+    slider.style.cursor=slider.disabled?'not-allowed':'pointer';
+  }
   // Orbital scenes are modeled without drag so their trajectories remain stable.
   if(scene==='nbody')$('drag').value='0';
   $('drag').disabled=scene==='nbody';
