@@ -9,7 +9,7 @@ export function updateHUD(el, world, { fps = 0, physicsMs = 0, renderMs = 0, E0 
 
   el.innerHTML =
     `<div class="hudTitle">${scene === 'billiards' ? 'Billiards' : scene === 'nbody' ? 'N-body gravity' : 'Spring network'} · Conservation HUD</div>` +
-    row('Time', `${number(world.time, 2)} s`) +
+    row('Time', `${number(world.time, 4)} s`) +
     row('Bodies', String(world.bodies.length)) +
     row('Total energy', number(energy, 5)) +
     row('Energy drift', `${drift >= 0 ? '+' : ''}${number(drift, 4)}%`, Math.abs(drift) > 1 ? 'warn' : 'good') +
