@@ -43,3 +43,7 @@ Both tests passed conservation checks: at e=1, total energy stayed constant to f
 - Collision flashes are a lightweight contact heuristic, limited to scenes with fewer than 110 balls for performance; walls have no flashes.
 - Pointer manipulation needs mouse/touch/pen; keyboard navigation covers control panel operations, not moving individual bodies inside the canvas.
 - Automated JavaScript tests were run successfully; final browser, phone, and deployed-link testing performed by me before submission.
+
+## Access
+https://github.com/blannerd-png/phys311/edit/main/labs/lab10/
+https://blannerd-png.github.io/phys311/labs/lab10/
