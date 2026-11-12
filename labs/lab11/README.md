@@ -1,92 +1,128 @@
-# PHYS 311 — PET Scanner: a particle-by-particle physics model
+# PET scanner: can it find the tumor?
 
-## 1. What it is
-An interactive browser simulation of positron emission tomography (PET), built on the Lab 9/10 physics engine. Each tracer decay is followed from start to finish:
-1. A positron is emitted and slows down in tissue.
-2. It annihilates into two photons.
-3. The photons are tracked through the body (they may Compton-scatter or be absorbed) to a 256-crystal detector ring.
-4. Pairs of detections are sorted into coincidences, and the coincidences are reconstructed into an image while you watch.
+PHYS 311 final project. A Monte Carlo PET scanner in the browser (plain ES modules, no libraries), built on the
+Lab 8–10 engine. The question it answers, from Prof. Breinig's email: **what minimum time resolution and detection
+efficiency does a detector need to detect a 3D tumor?** It then extends that answer with time of flight, 3D coverage
+(more rings, bed stepping) and Compton scatter.
 
-The visitor can switch individual physical effects on and off and see how each one degrades the image. One real decay at a time is replayed in slow motion, with a zoomed view of the positron's millimetre-scale track.
+## Scope: MUST / SHOULD / COULD
 
-Run it with VS Code "Open with Live Server" (ES modules need a server). Run `npm test` for the automated checks.
+| | What the email asked | What is implemented | Where |
+|---|---|---|---|
+| **MUST** | 3D tumor with many more decays than its surroundings | Spherical tumor (default r = 1 cm, uptake 5 : 1) in a 22 cm × 24 cm water cylinder; emission density ∝ tracer concentration | `engine/phantom.js` |
+| **MUST** | Gamma rays do not scatter, travel in straight lines | Photons are straight rays at c. Attenuation (optional, on by default) only removes photons along the line (Beer–Lambert); it never deflects them | `engine/photon.js` |
+| **MUST** | Detectors = given time resolution + detection efficiency | Each photon reaching a crystal is detected with probability ε. Each detection is time-stamped with Gaussian jitter so two stamps differ with the chosen coincidence time resolution (CTR). The coincidence window follows the CTR: τ = 2·r_FOV/c + 2·CTR | `engine/scanner.js` |
+| **MUST** | Minimum resolution and efficiency to detect the tumor | Image reconstruction + tumor contrast-to-noise ratio (CNR), Rose criterion CNR ≥ 5, swept over ε and CTR | `recon/`, `study.mjs` |
+| SHOULD | Better time resolution → better spatial resolution | Time of flight (TOF): Δt places each event along its line with σ = c·σ_t/2. TOF backprojection and TOF list-mode MLEM | `recon/reconstruction.js` |
+| SHOULD | 3D detection: more detectors or moving the gurney in steps | Ring stack (1–48 rings), 2D/septa/3D ring-pair acceptance, 1–4 bed positions, coronal view | `engine/scanner.js`, `render/` |
+| COULD | Probability that a gamma ray scatters | Compton scatter (Klein–Nishina, Woodcock tracking) with an energy window | `engine/photon.js` |
 
-## 2. Physics concepts
-| Stage | Physics | Where |
-|---|---|---|
-| Positron emission | β⁺ energy spectrum (allowed shape p·E·(Eₘₐₓ−T)²) | `engine/positron.js` |
-| Positron slowing | Newton's 2nd law: a `Body` in a `World` integrated by **Euler–Cromer**, under a Bethe-like stopping force F = −b·v̂/v² and a multiple-scattering force that rotates v by a random angle each step | `engine/positron.js` |
-| Annihilation | e⁺e⁻ → 2γ with **exact relativistic energy and momentum conservation**: back-to-back 511 keV photons in the pair's rest frame, Lorentz-boosted by the residual momentum. This gives the ≈0.5° non-collinearity and a ~1 keV Doppler shift | `engine/annihilation.js` |
-| Photon transport | Beer–Lambert attenuation, μ(511 keV) = 0.096 cm⁻¹ in water; Woodcock (delta) tracking through tissue, lung and bone | `engine/photon.js` |
-| Compton scattering | Klein–Nishina angular distribution; E′ = E / (1 + (E/mc²)(1 − cos θ)) | `engine/photon.js` |
-| Detection | Detector efficiency, Gaussian energy resolution ∝ √E, timing jitter, energy window | `engine/scanner.js` |
-| Coincidence sorting | Single-window sorter: trues, scatters, randoms (rate ∝ 2τS²), multiples; NECR | `engine/scanner.js` |
-| Image reconstruction | Sinogram (Radon transform); simple and ramp-filtered backprojection (FFT); MLEM iterative reconstruction; time-of-flight backprojection; attenuation correction from exact line integrals of μ | `recon/reconstruction.js` |
+**Not included (deliberately):** detector dead time, depth-of-interaction / crystal penetration, randoms and scatter
+correction, detector normalisation, a realistic anatomy, and clinical scan lengths (see *Limitations*).
 
-Topics from earlier blocks: Newton's laws and numerical integration (positron transport using the Lab 9 `World`, `Body` and `EulerCromer`); momentum and energy conservation (annihilation, checked live on the HUD); exponential decay laws (attenuation, Poisson decay times).
+## Physics model (decay → image)
 
-### Reuse of the Lab 9/10 code
-- `engine/vec2.js`, `body.js`, `world.js`, `integrators.js`, `forces.js`, `collisions.js` are copied **unchanged**.
-- `render/camera.js` (world ↔ screen with flipped y) and `input.js` (`eventToWorld` with the bounding-rect correction) are reused unchanged.
-- The new forces (`StoppingForce`, `ScatteringForce`) use the same `apply(world)` Force interface as `Gravity`, `Drag` and `Spring`.
-- The fixed-step loop, HUD layout, keyboard shortcuts, CSV export and the layering rule follow Lab 10.
-- Photons are not Newtonian bodies (massless, constant speed c), so they are modelled as Monte Carlo rays rather than integrated.
+1. **Decay.** An emission point is drawn with probability ∝ tracer concentration × volume (cylinders along z and spheres).
+2. **Positron range (classical, Lab 9 engine).** The positron is a `Body` integrated by `World` + `EulerCromer`, with a
+   Bethe-like stopping force (∝ 1/v²) and a multiple-scattering force. Mean ranges are calibrated to published values
+   (F-18 0.57 mm … Rb-82 5.3 mm). The 2D track is placed in a randomly oriented plane in 3D.
+3. **Annihilation.** Exact two-photon kinematics: back-to-back 511 keV photons in the pair's rest frame, Lorentz-boosted
+   by the residual momentum (σ = 1.9 keV/c per component), which gives the measured ≈0.5° non-collinearity.
+4. **Photon transport.** Straight lines to the detector cylinder (R = 40 cm). With attenuation on, a photon survives with
+   probability exp(−∫μ dl). The line integral is computed exactly through every cylinder and sphere. Photons that leave
+   through the ends of the ring stack are lost.
+5. **Detector.** 24 rings × 512 crystals (≈4.9 mm × 5 mm), 12 cm axial field of view. A photon is detected with
+   probability ε, so a pair is recorded with probability ε². The energy is blurred by the energy resolution, and only
+   425–650 keV is accepted (this only matters when scatter is on). The time stamp is t = t_flight + σ·g with
+   σ = CTR/(2.355·√2).
+6. **Coincidence sorting.** A window of width τ opens on each single. Exactly two singles in the window form a prompt.
+   Prompts are labelled *true*, *scatter* or *random* (two different decays). Three or more singles count as a *multiple*
+   and are discarded. LORs outside the 14 cm FOV radius or with a too-large ring difference are rejected.
+7. **Reconstruction.** Single-slice rebinning (SSRB) assigns each line to the slice at its axial midpoint. Each slice is
+   then reconstructed with filtered backprojection, sinogram or list-mode MLEM, or TOF. Attenuation correction uses the
+   phantom's μ-map (the "CT" of PET/CT).
+8. **Detectability.** On a 1 cm slab through the tumor centre:
+   CNR = (tumor ROI mean − mean of ≈30 background ROIs) / (standard deviation of the background ROI means).
+   The background ROIs have the same size as the tumor ROI and lie on three rings around the body centre. Detected ⇔ CNR ≥ 5 (Rose).
 
-## 3. How to use
-| Control | Behavior | Keyboard |
-|---|---|---|
-| Phantom | Torso slice (lungs, spine, heart, two lesions) · Derenzo resolution rods · uniform water cylinder · point sources in air | Tab, arrows |
-| Tracer isotope | F-18, C-11, Ga-68, Rb-82: higher positron energy → longer range → blurrier image | Tab, arrows |
-| Reconstruction | FBP · simple backprojection · MLEM · time-of-flight backprojection | Tab, arrows |
-| Pause / Step / Restart | Freeze acquisition; simulate exactly one decay and replay it; clear all data | Space, `.`, R |
-| Add lesion / Remove added | Add a hot lesion at a random spot (torso & uniform) | Focus + Enter |
-| Canvas pointer | Drag a dashed lesion; click inside the body to add one | Pointer / touch |
-| Physics switches | Positron range, non-collinearity, attenuation, Compton scatter, attenuation correction | Checkboxes |
-| Activity | 0.1–200 M decays/s (log scale): watch randoms and multiples grow | Range slider |
-| Energy window, energy resolution | Reject scattered photons; see the trade-off with sensitivity | Range sliders |
-| Coincidence window τ, CTR | Randoms ∝ τ; TOF blur = c·CTR/2 | Range sliders |
-| Acquisition speed | 1 to 4000 decays per frame (1 = follow single events) | −/+ |
-| Show | Lines of response, slow-motion replay, zoomed positron track | Checkboxes |
-| Download list-mode CSV | Every coincidence: time, crystals, endpoints, Δt, energies, type, true position | Focus + Enter |
+## Results (`npm run study`, full tables in `results/summary.md`)
 
-Visual encoding (not by colour alone): true LORs are solid lines, scattered LORs dashed, and randoms dotted. Compton vertices are marked ×. The caption under the canvas describes each replayed decay in words.
+Scan: 50 MBq in the phantom, 2 × 10⁷ decays (0.4 s of acquisition), 3 random seeds. MUST reconstruction: non-TOF
+list-mode MLEM, 6 iterations, 6 mm smoothing. The study uses *common random numbers*: one simulation with a perfect
+detector, where a detector with efficiency ε keeps the photons with u < ε and a detector with resolution CTR re-stamps
+their times. All grid points therefore see the same decays.
 
-Things to try:
-- **Uniform cylinder.** With attenuation correction off, the centre looks too dark ("cupping"); turn AC on and it flattens.
-- **Derenzo rods.** Compare F-18 with Rb-82: the small rods disappear with Rb-82.
-- **Torso.** Turn Compton scatter on and off and watch the haze and the scatter fraction. Raise the energy-window lower edge to cut scatter.
-- **Activity at maximum.** Randoms take over and NECR stops rising.
-- **Time-of-flight mode.** Drop the CTR to 100 ps and the image sharpens with no reconstruction at all.
+**MUST: minimum detector**
 
-## 4. How I know it's right
-`npm test` runs 21 automated checks (results from the current code):
+| CTR | window | randoms (ε = 1) | minimum ε for CNR ≥ 5 |
+|---|---|---|---|
+| 0.25 – 1 ns | 1.4 – 2.9 ns | 4 – 8 % | ≈ 0.35 |
+| 2 – 4 ns | 4.9 – 8.9 ns | 13 – 21 % | ≈ 0.40 |
+| 8 ns | 17 ns | 33 % | 0.47 |
+| 16 ns | 33 ns | 49 % | 0.64 |
+| 32 ns | 65 ns | 66 % | not detectable even at ε = 1 |
 
-| Check | Result |
-|---|---|
-| Annihilation energy conservation, 20,000 pairs | max \|E₁+E₂−E\| = 2.3×10⁻¹³ keV |
-| Annihilation momentum conservation | max \|p₁+p₂−p\| = 8.3×10⁻¹⁴ keV/c |
-| Non-collinearity FWHM (target ≈ 0.5°) | 0.503° |
-| Compton backscatter energy (511/3) | 170.333 keV |
-| Klein–Nishina ⟨cos θ⟩, Monte Carlo vs integral | 0.2926 vs 0.2914 |
-| Beer–Lambert survival through 10 cm water, exp(−0.96) | 0.3815 vs 0.3829 |
-| Positron mean range vs published (F-18 / C-11 / Ga-68 / Rb-82) | 0.567 / 0.997 / 2.588 / 5.422 mm vs 0.57 / 1.02 / 2.69 / 5.33 mm |
-| Attenuation line integral, exact vs numeric | 2.09720 vs 2.09717 |
-| Coincidence sorter on hand-made singles | 1 true, 1 multiple |
-| Randoms per decay when activity ×5 (expect ≈5; multiples remove some) | ×4.30 |
-| FBP point-source centroids at 0, 5, 10 cm | within 0.005 cm |
-| MLEM count conservation | Σ A·x / Σ y = 1.000000000 |
-| TOF backprojection centroid (source at 5 cm) | 4.997 cm |
-| Seeded runs reproducible; no DOM in `engine/` or `recon/` | pass |
+* **Efficiency** sets the number of recorded pairs (∝ ε²), so the noise ∝ 1/ε and CNR grows roughly ∝ ε.
+  Below ε ≈ 0.3 the tumor is lost in the noise.
+* **Time resolution** (without TOF) only enters through the coincidence window. The randoms rate is 2τ·S₁·S₂, so a
+  poorer CTR means a wider window and more randoms. Up to ≈ 4 ns this costs little. Beyond that, the randoms add noise
+  and lower the contrast (contrast 1.68 → 0.42 from 0.25 → 32 ns at ε = 1), and the wide window loses trues to multiples
+  (134 k → 60 k). So the *minimum detector* is roughly **ε ≈ 0.4 per photon with a time resolution of a few ns**.
+* **Scaling.** CNR ∝ √(recorded pairs) ∝ ε·√(scan time), so ε_min ∝ 1/√(scan time) at fixed activity. The randoms
+  fraction depends on activity × window, not on scan length. A clinical scan lasts minutes rather than 0.4 s, so this 2 cm
+  tumor would be found with a much worse detector. Smaller or fainter tumors (sliders in the app) move the threshold back up.
 
-The live HUD repeats the annihilation conservation check for every decay. The energy spectrum shows the 511 keV photopeak and the Compton continuum below the 341 keV Compton edge, as on a real scanner. The positron-range calibration uses published mean ranges in water (Conti & Eriksson 2016; Cal-Gonzalez et al.). Range scales as 1/density, which reproduces the published ratio of about 3.2× in lung.
+**SHOULD: time of flight** (ε = 0.5). The same events are reconstructed with and without TOF. The CNR gain is ×1.5 at
+100 ps, ×1.2 at 400 ps and ×1.04 at 2 ns. It follows the √(D/Δx) trend (Δx = c·CTR/2) but stays below that ideal, as
+expected for a small (22 cm) body and a fixed number of MLEM iterations.
 
-Robustness: every slider was set to its extreme and every phantom × isotope × reconstruction combination was cycled. Every button was spammed, lesions were dragged far outside the body (they are clamped), and the window was resized mid-run. None of this produced a NaN, a console error or a frozen frame.
+**SHOULD: 3D detection.** A tumor 9 cm along the patient lies outside a single bed's 12 cm axial FOV and is never seen.
+Two bed positions (CNR 6.0) or three (CNR 8.1) in the *same total time* find it. Three beds do better because the tumor
+sits in the middle of one bed's FOV, where 3D sensitivity is highest. At the centre, accepting all ring differences (3D)
+instead of |Δring| ≤ 3 collects 6.4× more events (CNR 12.0 vs 1.7).
 
-## 5. Known limitations
-- **2D only.** Real scanners are 3D. Photons are kept in the slice, so axial escape and out-of-plane scatter are missing. Scatter and random fractions are therefore indicative, not clinical.
-- **Positron model.** It is calibrated, not ab initio. The beta spectrum ignores the Fermi function, and range is scaled by the density at the emission point only.
-- **Photon physics.** Only Compton scattering (photoelectric absorption is approximated by stopping photons below 20 keV), with no Rayleigh scattering.
-- **Detector model.** No dead time, depth-of-interaction or crystal penetration. Each LOR end is placed at a random point across the crystal that fired, which avoids sampling artefacts from fixed crystal centres.
-- **No scatter or randoms correction.** They appear as background, on purpose.
-- **Not a clinical tool.** Research-grade PET simulation uses toolkits such as GATE or Geant4.
-- **Time scales are slowed for display.** A real photon crosses the ring in about 1 ns.
+**COULD: scatter** (ε = 0.8, 10⁷ decays). With the 425 keV threshold, 28 % of the accepted pairs are scattered. They are
+mostly small-angle scatters close to the true line, so the contrast barely changes (1.37 → 1.45, within noise). Opening
+the window to 250 keV accepts large-angle scatter (39 %), which halves the contrast (0.68) and the CNR (4.5).
+
+Figures: `results/must_cnr_vs_efficiency.png`, `must_detectability_map.png`, `must_min_efficiency.png`, `should_tof.png`
+(made by `python3 plot_results.py`).
+
+## Running it
+
+```bash
+python3 -m http.server 8000      # ES modules need a web server; then open http://localhost:8000
+npm test                         # 29 physics / detector / reconstruction checks (~15 s)
+npm run study                    # the detectability study (~15 min; or: node study.mjs --quick)
+python3 plot_results.py          # figures from results/*.csv
+```
+
+In the app, the **"Is the tumor detected?"** panel re-measures the CNR every few seconds. Try lowering the efficiency,
+making the time resolution worse, moving the tumor to z = 9 cm and adding bed positions, or switching on scatter.
+Keys: Space pause · `.` step · R clear · −/= speed · [ ] change slice.
+
+## Files
+
+```
+index.html, style.css, main.js, ui.js, input.js   page, controls, pointer → world coordinates
+engine/   vec2, body, world, forces, integrators, collisions, random   Lab 8–10 engine (unchanged)
+          phantom.js       3D phantoms (cylinders + spheres), exact μ line integrals
+          positron.js      positron range on the Lab 9 Body/World (3D sampling added)
+          annihilation.js  3D two-photon kinematics with Lorentz boost
+          photon.js        straight-line transport, attenuation, optional Compton scatter
+          scanner.js       ring stack, efficiency, timing, energy window, coincidence sorter, beds
+recon/    reconstruction.js  SSRB, FBP, MLEM, TOF backprojection, TOF list-mode MLEM, volume
+          detectability.js   ROI contrast-to-noise ratio, Rose criterion
+render/   camera.js, petRenderer.js (transverse + side views), eventAnimation.js, panels.js, petHud.js
+tests.mjs, study.mjs, plot_results.py, results/
+```
+
+## Limitations
+
+* The simulated scans are short (≈0.4 s at 50 MBq) because every decay is followed individually. Absolute thresholds
+  scale as described above; the trends are the result.
+* No randoms or scatter correction, no dead time. At very high singles rates a real scanner also loses counts to
+  dead time, which is not modelled.
+* SSRB is exact only for direct planes. Oblique lines from points far off-axis are mispositioned slightly in z.
+* The CNR has roughly ±15 % statistical uncertainty per grid point (error bars in the figure), and MLEM is non-linear
+  at very low counts, so CNR is not exactly ∝ ε below ε ≈ 0.3.

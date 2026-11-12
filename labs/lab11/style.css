@@ -55,3 +55,12 @@ canvas#sim{aspect-ratio:1/1}
 .buttons.two{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:8px}
 @media(max-width:900px){main{grid-template-columns:1fr}.results{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.results{grid-template-columns:1fr}}
+
+/* 3D PET project additions */
+canvas#side{aspect-ratio:1040/460}
+#coronal{aspect-ratio:1040/420 !important}#spectrum{aspect-ratio:1040/300 !important}
+aside{min-width:0}
+.detect{font-size:13px;min-height:4em}
+.detect .verdict{display:block;font-size:22px;font-weight:800;margin:0 0 8px}
+.detect .verdict.good{color:#7ee4a2}.detect .verdict.warn{color:#fb828a}
+input[type=range]:disabled{opacity:.4}

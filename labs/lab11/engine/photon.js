@@ -1,6 +1,8 @@
-// 511 keV photon transport: straight rays (photons are not Newtonian bodies),
-// Compton scattering sampled from Klein–Nishina, and Woodcock (delta) tracking
-// through the heterogeneous phantom. Lengths in cm, energies in keV.
+// 511 keV photon transport in 3D. Photons are not Newtonian bodies: they travel in straight
+// lines at c. MUST model: no scattering, only (optional) straight-line attenuation, i.e. a
+// photon either reaches the detector along its original line or is removed (Beer–Lambert).
+// COULD model (scatter on): Compton scattering sampled from Klein–Nishina with Woodcock
+// (delta) tracking through the heterogeneous phantom. Lengths in cm, energies in keV.
 import {exponential} from './random.js';
 import {ME_KEV} from './annihilation.js';
 
@@ -28,45 +30,88 @@ export function sampleKleinNishina(rand, E) {
   }
 }
 
-// Distance along (dx,dy) from (x,y) to where the ray leaves the circle (cx,cy,R); null if it misses.
-export function rayCircleExit(x, y, dx, dy, cx, cy, R) {
-  const ox = x - cx, oy = y - cy, b = ox * dx + oy * dy, q = ox * ox + oy * oy - R * R;
-  const disc = b * b - q;
+// Distance along the unit 3D direction d from p to the cylinder surface x²+y² = R² (axis = z),
+// going outwards. null if the ray is parallel to the axis or misses.
+export function rayCylinderExit(p, d, cx, cy, R) {
+  const ox = p[0] - cx, oy = p[1] - cy, a = d[0] * d[0] + d[1] * d[1];
+  if (a < 1e-14) return null;
+  const b = ox * d[0] + oy * d[1], q = ox * ox + oy * oy - R * R, disc = b * b - a * q;
   if (disc < 0) return null;
-  const t = -b + Math.sqrt(disc);
+  const t = (-b + Math.sqrt(disc)) / a;
   return t >= 0 ? t : null;
 }
 
-// Follow one photon from the annihilation point to the detector ring.
-export function transportPhoton(rand, phantom, x, y, dx, dy, E, ringRadius,
-  {attenuation = true, scatter = true, record = false} = {}) {
-  const path = record ? [[x, y]] : null;
-  let length = 0, scatters = 0;
-  const body = phantom.body;
+// Distance to leave the body (outer region) of the phantom; 0 if already outside.
+function bodyExit(phantom, p, d) {
+  const b = phantom.body;
+  if (b.shape === 'sphere') {
+    const o = [p[0] - b.x, p[1] - b.y, p[2] - b.z], bb = o[0] * d[0] + o[1] * d[1] + o[2] * d[2];
+    const disc = bb * bb - (o[0] ** 2 + o[1] ** 2 + o[2] ** 2 - b.r * b.r);
+    return disc < 0 ? 0 : Math.max(0, -bb + Math.sqrt(disc));
+  }
+  let t = rayCylinderExit(p, d, b.x, b.y, b.r) ?? Infinity;
+  if (d[2] > 1e-14) t = Math.min(t, (b.z1 - p[2]) / d[2]);
+  else if (d[2] < -1e-14) t = Math.min(t, (b.z0 - p[2]) / d[2]);
+  return Number.isFinite(t) ? Math.max(0, t) : 0;
+}
+
+// Rotate unit vector d by polar angle θ (cos c) about a random azimuth (3D Compton scatter).
+function deflect(d, c, rand) {
+  const s = Math.sqrt(Math.max(0, 1 - c * c)), phi = 2 * Math.PI * rand(), cp = Math.cos(phi), sp = Math.sin(phi);
+  const [u, v, w] = d;
+  if (Math.abs(w) > 0.99999) return [s * cp, s * sp, Math.sign(w) * c];
+  const k = Math.sqrt(1 - w * w);
+  return [
+    u * c + s * (u * w * cp - v * sp) / k,
+    v * c + s * (v * w * cp + u * sp) / k,
+    w * c - s * cp * k
+  ];
+}
+
+// Follow one photon from the annihilation point p (patient frame) along unit direction d
+// to the detector cylinder of radius det.R, which covers det.zLo ≤ z ≤ det.zHi (patient frame).
+// Returns {absorbed, escaped, x, y, z, angle, length, scatters, E, path}.
+export function transportPhoton(rand, phantom, p, d, E, det, {attenuation = true, scatter = false, record = false} = {}) {
+  const path = record ? [[...p]] : null;
+  let pos = [...p], dir = [...d], length = 0, scatters = 0;
   if (attenuation && phantom.muMax > 0) {
-    for (let guard = 0; guard < 400; guard++) {
-      const exit = rayCircleExit(x, y, dx, dy, body.x, body.y, body.r);
-      if (exit === null) break;
-      const muMax = phantom.muMax * muScale(E);
-      const s = exponential(rand, muMax);
-      if (s >= exit) {x += dx * exit; y += dy * exit; length += exit; break;}
-      x += dx * s; y += dy * s; length += s;
-      const mu = phantom.muAt(x, y) * muScale(E);
-      if (rand() * muMax >= mu) continue;          // virtual (delta) collision: keep going
-      if (!scatter) {                               // treated as removed from the beam
-        if (record) path.push([x, y]);
-        return {absorbed: true, path, length, scatters, E, x, y};
+    if (!scatter) {
+      // Straight line: survival probability exp(−∫mu dl) along the whole line out of the body.
+      const t = bodyExit(phantom, pos, dir);
+      const end = [pos[0] + dir[0] * t, pos[1] + dir[1] * t, pos[2] + dir[2] * t];
+      const mul = phantom.muLineIntegral(pos, end) * muScale(E);
+      if (rand() >= Math.exp(-mul)) {
+        // Removed somewhere along the line; for the drawing, put the interaction at a sampled depth.
+        if (record) path.push(end.map((v, i) => pos[i] + (v - pos[i]) * rand()));
+        return {absorbed: true, escaped: false, path, length, scatters, E, x: pos[0], y: pos[1], z: pos[2]};
       }
-      const c = sampleKleinNishina(rand, E);
-      const sn = Math.sqrt(Math.max(0, 1 - c * c)) * (rand() < 0.5 ? -1 : 1); // 2D: scatter in-plane
-      const ndx = dx * c - dy * sn, ndy = dx * sn + dy * c;
-      dx = ndx; dy = ndy; E = comptonEnergy(E, c); scatters++;
-      if (record) path.push([x, y]);
-      if (E < 20) return {absorbed: true, path, length, scatters, E, x, y}; // photoelectric takes over
+    } else {
+      for (let guard = 0; guard < 400; guard++) {
+        const exit = bodyExit(phantom, pos, dir);
+        if (exit <= 0) break;
+        const muMax = phantom.muMax * muScale(E);
+        const s = exponential(rand, muMax);
+        if (s >= exit) {pos = pos.map((v, i) => v + dir[i] * exit); length += exit; break;}
+        pos = pos.map((v, i) => v + dir[i] * s); length += s;
+        const mu = phantom.muAt(pos[0], pos[1], pos[2]) * muScale(E);
+        if (rand() * muMax >= mu) continue;          // virtual (delta) collision: keep going
+        const c = sampleKleinNishina(rand, E);
+        dir = deflect(dir, c, rand); E = comptonEnergy(E, c); scatters++;
+        if (record) path.push([...pos]);
+        if (E < 20) return {absorbed: true, escaped: false, path, length, scatters, E, x: pos[0], y: pos[1], z: pos[2]}; // photoelectric
+      }
     }
   }
-  const toRing = rayCircleExit(x, y, dx, dy, 0, 0, ringRadius);
-  x += dx * toRing; y += dy * toRing; length += toRing;
-  if (record) path.push([x, y]);
-  return {absorbed: false, path, length, scatters, E, x, y, angle: Math.atan2(y, x)};
+  const toRing = rayCylinderExit(pos, dir, 0, 0, det.R);
+  if (toRing === null) return {absorbed: false, escaped: true, path, length, scatters, E, x: pos[0], y: pos[1], z: pos[2]};
+  pos = pos.map((v, i) => v + dir[i] * toRing); length += toRing;
+  if (record) path.push([...pos]);
+  const escaped = pos[2] < det.zLo || pos[2] > det.zHi;   // passes the end of the ring stack
+  return {absorbed: false, escaped, path, length, scatters, E, x: pos[0], y: pos[1], z: pos[2], angle: Math.atan2(pos[1], pos[0])};
+}
+
+// Where would an unscattered photon from p along d hit the detector cylinder? (fast pre-check)
+export function straightHitZ(p, d, R) {
+  const t = rayCylinderExit(p, d, 0, 0, R);
+  return t === null ? null : p[2] + d[2] * t;
 }

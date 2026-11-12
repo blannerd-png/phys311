@@ -1,10 +1,13 @@
 // Positron transport built on the Lab 9 engine: a Body integrated by World + EulerCromer,
 // slowed by a Bethe-like stopping force and deflected by multiple Coulomb scattering.
+// The track is integrated in its own plane; for the 3D scanner the plane is given a random
+// orientation (the range distribution is calibrated on |displacement|, so it is unchanged).
 // Units inside this module: length in mm, arbitrary time unit, mass 1.
 import {World} from './world.js';
 import {Body} from './body.js';
 import {EulerCromer} from './integrators.js';
 import {gaussian} from './random.js';
+import {isotropic} from './annihilation.js';
 
 export const ME_MEV = 0.511;
 
@@ -121,10 +124,23 @@ export class PositronTransport {
     };
   }
 
-  // Fast sample from the precomputed table, randomly rotated. Returns mm.
+  // Fast 3D sample: a range from the precomputed table in an isotropic direction. Returns mm.
   sample() {
-    const i = Math.floor(this.rand() * 4000), a = 2 * Math.PI * this.rand();
-    const x = this.table[2 * i], y = this.table[2 * i + 1], c = Math.cos(a), s = Math.sin(a);
-    return [x * c - y * s, x * s + y * c];
+    const i = Math.floor(this.rand() * 4000), x = this.table[2 * i], y = this.table[2 * i + 1], r = Math.sqrt(x * x + y * y);
+    const d = isotropic(this.rand);
+    return [r * d[0], r * d[1], r * d[2]];
+  }
+
+  // Full track (for the slow-motion inset) placed in a randomly oriented plane.
+  // Returns {path2d: [[x,y]...] mm in the track's own plane, displacement: [dx,dy,dz] mm}.
+  run3D() {
+    const run = this.run(true), n = isotropic(this.rand);
+    // Orthonormal basis (e1, e2) of the plane perpendicular to n.
+    const t = Math.abs(n[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0];
+    let e1 = [n[1] * t[2] - n[2] * t[1], n[2] * t[0] - n[0] * t[2], n[0] * t[1] - n[1] * t[0]];
+    const L = Math.hypot(...e1); e1 = e1.map(v => v / L);
+    const e2 = [n[1] * e1[2] - n[2] * e1[1], n[2] * e1[0] - n[0] * e1[2], n[0] * e1[1] - n[1] * e1[0]];
+    const [dx, dy] = run.displacement;
+    return {path2d: run.path, displacement: [0, 1, 2].map(k => dx * e1[k] + dy * e2[k]), energy: run.energy};
   }
 }
