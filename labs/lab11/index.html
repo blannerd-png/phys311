@@ -59,7 +59,7 @@
       <h2>Patient &amp; tumor</h2>
       <label for="phantom">Phantom</label>
       <select id="phantom">
-        <option value="tumor" selected>Water cylinder with a tumor (MUST)</option>
+        <option value="tumor" selected>Water cylinder with a tumor</option>
         <option value="torso">Torso section with lesions</option>
         <option value="uniform">Uniform water cylinder</option>
         <option value="derenzo">Resolution rods (Derenzo)</option>
@@ -83,7 +83,7 @@
     </section>
 
     <section class="panel">
-      <h2>Detector (MUST)</h2>
+      <h2>Detector</h2>
       <label for="efficiency">Detection efficiency per photon <output id="efficiencyValue"></output></label>
       <input type="range" id="efficiency" min="5" max="100" step="5" value="80">
       <span class="sliderHint">A pair is recorded with probability ε²</span>
@@ -93,11 +93,11 @@
       <label for="coincWindow">Coincidence window <output id="coincWindowValue"></output></label>
       <input type="range" id="coincWindow" min="1" max="60" step="0.5" value="4">
       <p class="note">Without time-of-flight, the time resolution only sets the coincidence window: a wider window accepts
-        more random pairs. The “TOF” reconstructions also use the measured Δt to place each event along its line (SHOULD).</p>
+        more random pairs. The “TOF” reconstructions also use the measured Δt to place each event along its line.</p>
     </section>
 
     <section class="panel">
-      <h2>3D coverage (SHOULD)</h2>
+      <h2>3D coverage</h2>
       <label for="rings">Detector rings <output id="ringsValue"></output></label>
       <input type="range" id="rings" min="1" max="48" step="1" value="24">
       <label for="ringMode">Accepted ring pairs</label>
