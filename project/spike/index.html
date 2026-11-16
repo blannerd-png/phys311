@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Risk spike: PET engine frame budget</title></head>
+<body style="font-family: monospace; padding: 1rem;">
+<h1 style="font-size: 1.1rem;">Risk spike: PET engine frame budget</h1>
+<p>Open this page on the slowest machine you can find (Chromebook, old laptop, phone), then press Run. It takes about 30 seconds and freezes the tab while it runs.</p>
+<button id="run" type="button">Run</button>
+<pre id="out" aria-live="polite"></pre>
+<script type="module">
+import {runAll} from './bench.js';
+const out = document.getElementById('out');
+document.getElementById('run').addEventListener('click', () => {
+  out.textContent = navigator.userAgent + '\nhardwareConcurrency: ' + navigator.hardwareConcurrency + '\n\n';
+  setTimeout(() => runAll(line => {out.textContent += line + '\n';}), 50);
+});
+</script>
+</body>
+</html>
