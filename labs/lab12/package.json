@@ -1,0 +1,10 @@
+{
+  "name": "phys311-pet-scanner",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests.mjs && node week12_validation.mjs",
+    "validate:week12": "node week12_validation.mjs",
+    "study": "node study.mjs"
+  }
+}
