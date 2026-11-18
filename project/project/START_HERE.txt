@@ -1,0 +1,23 @@
+PET SCANNER + SIMULATION DETAILS: THE PHYSICS
+---------------------------------------------
+
+1. Back up your existing project folder first. Do NOT merge just the HTML/CSS
+   from a different version: mismatched JavaScript dependencies can leave a
+   blank scanner screen.
+2. Extract the complete ZIP and use the full 'project' folder inside it.
+   In particular, main.js AND the engine, recon, render, and runtime folders
+   must all live beside index.html.
+3. On Windows, open a terminal in the project folder and run:
+       py -3 -m http.server 8000
+   If 'py' is not recognized, use:
+       python -m http.server 8000
+4. In a browser open:
+       http://localhost:8000
+   Do NOT double-click index.html or use a file:/// URL.
+5. Switch to 'Simulation Details: The Physics' using the tab at the top.
+
+If the canvas is blank, the screen now shows a diagnostic banner instead of
+just saying 'Running'. Press F12 -> Console to see which file failed to load.
+
+The two views share one index.html and keep accumulated scanner data when you
+switch between them. No separate information.html page is required.
