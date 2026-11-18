@@ -272,6 +272,7 @@ function updateImage() {
   imageDirty = false;
 }
 
+let firstFrameDrawn = false;
 function frame(ms) {
   const now = ms / 1000, dt = lastTime ? clamp(now - lastTime, 0, 0.1) : 0; lastTime = now;
   if (dt > 0) fps = 0.94 * fps + 0.06 / dt;
@@ -290,6 +291,10 @@ function frame(ms) {
   for (let i = 0; i < scanner.ringHits.length; i++) scanner.ringHits[i] *= 0.9;
   renderer.draw(scanner, flags, animator, cursor, viewZ);
   sideRenderer.draw(scanner, flags, animator, viewZ);
+  if (!firstFrameDrawn) {
+    firstFrameDrawn = true;
+    window.dispatchEvent(new Event('pet:ready'));
+  }
   reconTimer += dt; hudTimer += dt; cnrTimer += dt; coronalTimer += dt;
   const mode = $('recon').value, reconEvery = mode === 'tofmlem' ? 3 : mode === 'mlem' || mode === 'tof' ? 1.0 : 0.5;
   if (imageDirty && (reconTimer > reconEvery || paused && reconTimer > 0.3)) {reconTimer = 0; updateImage();}

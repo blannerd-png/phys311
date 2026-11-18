@@ -26,6 +26,11 @@
   <div class="leftcol">
     <section class="stage">
       <div class="topline"><span id="phantomName">Phantom</span><span id="status">Running</span></div>
+      <div id="simulationStartupError" class="startup-error" role="alert" hidden>
+        <strong>The simulation could not start.</strong>
+        <p id="simulationStartupDetail">The JavaScript modules did not load.</p>
+        <p>Open this project through <code>http://localhost:8000</code> instead of double-clicking <code>index.html</code>. If that does not fix it, check that <code>main.js</code>, <code>ui.js</code>, <code>engine/</code>, <code>recon/</code>, <code>render/</code> and <code>runtime/</code> are all in this project folder. Press F12 → Console for the exact error.</p>
+      </div>
       <canvas id="sim" width="900" height="900" tabindex="0" aria-label="Transverse view of the scanner"></canvas>
       <div class="legend">
         <span><i class="line true"></i>true coincidence</span><span><i class="line scatter"></i>scattered</span>
@@ -345,6 +350,44 @@
 
 <footer id="simulationFooter">Space: pause · . : one decay · R: reset · D: debug · − / =: speed · [ / ]: slice. Engine: positron transport on the Lab 9 Body/World integrator;
   photons as straight rays; detector = efficiency + timing resolution; reconstruction: SSRB + FBP / MLEM / TOF.</footer>
+<script>
+// Show an actionable diagnostic when a module is missing or browser startup fails.
+// This ordinary script runs even if the ES-module graph cannot be loaded.
+(() => {
+  let started = false;
+  const showFailure = message => {
+    if (started) return;
+    const banner = document.getElementById('simulationStartupError');
+    if (!banner) return;
+    banner.hidden = false;
+    const status = document.getElementById('status');
+    if (status) status.textContent = 'Startup error';
+    const detail = document.getElementById('simulationStartupDetail');
+    if (detail) detail.textContent = message;
+  };
+  window.addEventListener('pet:ready', () => {
+    started = true;
+    const banner = document.getElementById('simulationStartupError');
+    if (banner) banner.hidden = true;
+  });
+  window.addEventListener('error', event => {
+    if (event.message) showFailure('JavaScript error: ' + event.message);
+    else if (event.target instanceof HTMLScriptElement)
+      showFailure('Failed to load a JavaScript module. Check the project folders and the browser Console.');
+  }, true);
+  window.addEventListener('unhandledrejection', event => {
+    const cause = event.reason?.message || String(event.reason || 'Unknown error');
+    showFailure('JavaScript startup error: ' + cause);
+  });
+  if (location.protocol === 'file:') {
+    showFailure('This page was opened as a local file. ES modules must be loaded through a local web server.');
+  } else {
+    setTimeout(() => {
+      if (!started) showFailure('The simulation did not finish initializing. Verify that all project files were copied, then check F12 → Console.');
+    }, 8000);
+  }
+})();
+</script>
 <script type="module" src="main.js"></script>
 <script type="module" src="physicsPage.js"></script>
 </body>

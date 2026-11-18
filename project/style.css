@@ -126,3 +126,9 @@ input[type=range]:disabled{opacity:.4}
 @media(max-width:1100px){.physics-layout{grid-template-columns:1fr}.physics-toc{position:static;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.physics-toc p{grid-column:1/-1}.physics-hero{grid-template-columns:1fr}}
 @media(max-width:700px){.physics-page{padding:15px 13px 30px}.physics-hero{padding:22px 18px}.physics-live{grid-template-columns:repeat(2,minmax(0,1fr))}.physics-card{padding:20px 16px}.physics-toc{grid-template-columns:repeat(2,minmax(0,1fr))}.physics-eq{font-size:16px;padding:12px 10px}.physics-flow span{font-size:11px}.physics-live strong{font-size:17px}.physics-verdict span{font-size:16px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* Startup diagnostics: only visible if the simulation ES modules fail. */
+.startup-error{margin:12px 16px;padding:18px 20px;border:1px solid #ff9c75;border-radius:10px;background:#39211f;color:#ffe8db;line-height:1.6}
+.startup-error strong{display:block;font-size:16px;margin-bottom:5px}
+.startup-error p{margin:8px 0}
+.startup-error code{color:#fff1be}

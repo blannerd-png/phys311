@@ -88,6 +88,10 @@ the window to 250 keV accepts large-angle scatter (39 %), which halves the contr
 Figures: `results/must_cnr_vs_efficiency.png`, `must_detectability_map.png`, `must_min_efficiency.png`, `should_tof.png`
 (made by `python3 plot_results.py`).
 
+## Simulation Details: The Physics page
+
+Use the **Interactive Simulation / Simulation Details: The Physics** toggle below the title. The new physics view documents all 13 stages of the simulator, with equations, physical interpretation, model assumptions, and direct links to the source files. The location `index.html#physics` opens the explanation directly. It is an in-page view rather than a separate reload: simulation settings and accumulated events remain intact when switching back and forth. The physical explanations are embedded in `index.html`, with navigation in `physicsPage.js` and styling in `style.css`.
+
 ## Running it
 
 ```bash
