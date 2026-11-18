@@ -1,0 +1,7 @@
+case,tumor_z_cm,trues_in_slab,cnr,detected
+1 bed, 2D (septa: ring difference ≤ 3),9,0,NaN,no
+1 bed, 3D (all ring differences),9,0,NaN,no
+2 beds, 3D (offsets ±5 cm),9,2544,6.0162,yes
+3 beds, 3D (offsets 0, ±10 cm),9,4168.5,8.0963,yes
+reference: tumor at z = 0, 1 bed, 2D,0,2249.5,1.7475,no
+reference: tumor at z = 0, 1 bed, 3D,0,14465,12.048,yes

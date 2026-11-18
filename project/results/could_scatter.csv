@@ -1,0 +1,4 @@
+case,scatter_fraction,contrast,cnr
+no scatter (MUST model),0,1.3745,6.3453
+scatter, 425–650 keV window,0.28306,1.4463,9.2058
+scatter, wide 250–650 keV window,0.39051,0.68368,4.4715

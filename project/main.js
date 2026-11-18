@@ -1,261 +1,350 @@
-import {createScene} from './scenes.js';
-import {EulerCromer,VelocityVerlet,Euler} from './engine/integrators.js';
-import {Gravity,Drag,NewtonGravity,Spring} from './engine/forces.js';
+import {Scanner} from './engine/scanner.js';
+import {PHANTOMS} from './engine/phantom.js';
+import {ISOTOPES} from './engine/positron.js';
+import {Reconstructor} from './recon/reconstruction.js';
+import {tumorCNR, ROSE_K} from './recon/detectability.js';
 import {Camera} from './render/camera.js';
-import {Renderer} from './render/renderer.js';
-import {updateHUD} from './render/hud.js';
-import {drawOverlays} from './render/overlays.js';
-import {MouseSpring,setupPointer} from './input.js';
-import {$,wireControls} from './ui.js';
+import {PetRenderer, SideRenderer} from './render/petRenderer.js';
+import {EventAnimator} from './render/eventAnimation.js';
+import {drawImage, drawTruth, drawSinogram, drawSpectrum, drawCoronal} from './render/panels.js';
+import {updatePetHUD} from './render/petHud.js';
+import {eventToWorld} from './input.js';
+import {$, wireControls, SPEEDS, activityFromSlider, ctrFromSlider, SLIDER_IDS, CHECK_IDS, CHANGE_IDS} from './ui.js';
+import {FixedStepAccumulator} from './runtime/fixedStep.js';
+import {conservativeConfig} from './runtime/conservative.js';
 
-const DT=1/120,canvas=$('sim'),camera=new Camera(canvas),renderer=new Renderer(canvas,camera);
-let active,world,E0,paused=false,accumulator=0,lastTime=0,fps=60,physicsMs=0,renderMs=0,speed=1;
-let gravity,drag,mouseSpring=new MouseSpring(),pointer,history=[],lastHistory=-1;
-/* Added for lab10 bonus*/
-let exportRows=[];
-let nextExportTime=0.1;
-const MAX_EXPORT_ROWS=200000;
-let flags={trails:true,vectors:true,forceVectors:false,flash:true,energyChart:true};
-const overlay={cursor:null,aimStart:null,aimEnd:null,flashes:[]};
-const names={billiards:'Billiards · Collisions and conservation',nbody:'N-body gravity · Orbital motion',springs:'Spring network · Oscillations'};
-const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-const n=id=>parseFloat($(id).value);
-function integrator(){return $('integrator').value==='verlet'?new VelocityVerlet():$('integrator').value==='euler'?new Euler():new EulerCromer();}
-function makeScene(){
-  const scene=$('scene').value;
-    // Disable sliders that do not apply to the selected scene
-  if(scene==='nbody'){
-    $('drag').value='0';
-  }
+const VIEW = {xMin: -46, xMax: 46, yMin: -46, yMax: 46};
+const SIDE_VIEW = {xMin: -62, xMax: 62, yMin: -46, yMax: 46};
+const canvas = $('sim'), camera = new Camera(canvas, VIEW), renderer = new PetRenderer(canvas, camera);
+const side = $('side'), sideCamera = new Camera(side, SIDE_VIEW), sideRenderer = new SideRenderer(side, sideCamera);
+const recon = new Reconstructor();
+const animator = new EventAnimator();
+const scanner = new Scanner(PHANTOMS.tumor.make(), {bedDwell: 40});
+scanner.onCoincidence = ev => recon.add(ev);
 
-  $('drag').disabled=scene==='nbody';
-  $('springK').disabled=scene!=='springs';
+const flags = {lors: true, animate: true, inset: true, liveCnr: true};
+const RECON_NAMES = {fbp: 'Filtered backprojection', bp: 'Simple backprojection', mlem: 'MLEM', tof: 'TOF backprojection', tofmlem: 'TOF MLEM'};
+let paused = false, cursor = null, lastTime = 0, fps = 60, physicsMs = 0, reconMs = 0;
+let reconTimer = 0, hudTimer = 0, cnrTimer = 0, coronalTimer = 0, imageDirty = true, drag = null, viewZ = 0, lastCnr = null;
+const fixedStepper = new FixedStepAccumulator();
+let debugMode = new URLSearchParams(window.location.search).get('debug') === '1';
+$('debugMode').checked = debugMode;
+$('debugPanel').hidden = !debugMode;
 
-  // Make disabled sliders visibly greyed out
-  for(const id of ['drag','springK']){
-    const slider=$(id);
-    slider.style.opacity=slider.disabled?'0.35':'1';
-    slider.style.cursor=slider.disabled?'not-allowed':'pointer';
-  }
-  // Orbital scenes are modeled without drag so their trajectories remain stable.
-  if(scene==='nbody')$('drag').value='0';
-  $('drag').disabled=scene==='nbody';
-  $('springK').disabled=scene!=='springs';
-  active=createScene(scene,Number($('count').value),n('restitution'),n('gravity'));
-  world=active.world;
-  world.integrator=integrator();
-  camera.setView(active.view);
-  // New forces use the existing Lab 09 Force interface, with no DOM inside engine/.
-  if(scene==='billiards'){
-    gravity=world.addForce(new Gravity(n('gravity')));
-    drag=world.addForce(new Drag(n('drag')));
-  } else if(scene==='springs'){
-    gravity=world.forces.find(f=>f instanceof Gravity);
-    gravity.g=n('gravity');
-    drag=world.addForce(new Drag(n('drag')));
-    for(const f of world.forces)if(f instanceof Spring)f.k=n('springK');
-  } else {
-    gravity=null;
-    drag=world.addForce(new Drag(0));
-    const G=n('gravity');
-    world.forces.find(f=>f instanceof NewtonGravity).G=G;
-    // Match each initial orbital velocity to the selected gravity strength.
-    // This also works if scenes.js still uses its original G=1 default.
-    const center=world.bodies[0];
-    for(const b of world.bodies.slice(1)){
-      const dx=b.pos.x-center.pos.x,dy=b.pos.y-center.pos.y;
-      const r=Math.hypot(dx,dy);
-      if(r===0)continue;
-      const direction=dx*b.vel.y-dy*b.vel.x>=0?1:-1;
-      const v=Math.sqrt(G*center.m/r)*direction;
-      b.vel.set(-dy/r*v,dx/r*v);
-    }
-  }
-  mouseSpring=new MouseSpring();mouseSpring.k=n('springK');
-  world.addForce(mouseSpring);
-  /* edited to make compatible with lab10 bonus*/
-  E0=world.totalEnergy();
-  history=[];lastHistory=-1;overlay.flashes=[];
-  exportRows=[];
-  nextExportTime=0.1;
-  recordSnapshot();
-  accumulator=0;lastTime=0;
-  $('collisionControls').hidden=scene!=='billiards';
-  $('sceneName').textContent=names[scene];
-  $('gravityLabel').textContent=scene==='nbody'?'Gravity strength G':'Downward gravity g';
-  $('springLabel').textContent=scene==='springs'?'Spring stiffness k (network & grab)':'Grab-spring stiffness k';
-  $('gravityHint').textContent=scene==='nbody'?'Normalized gravitational constant':'Downward acceleration (m/s²)';
-  $('status').textContent=paused?'Paused':'Running';
-  $('pause').textContent=paused?'Resume':'Pause';
-  $('cursorReadout').textContent='Move pointer onto canvas';
+const n = id => parseFloat($(id).value);
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+// Copy every slider/checkbox into the scanner config (values clamped to the ranges the model supports).
+function readConfig() {
+  const c = scanner.config;
+  c.positronRange = $('positronRange').checked;
+  c.nonCollinearity = $('nonCollinearity').checked;
+  c.attenuation = $('attenuation').checked;
+  c.scatter = $('scatter').checked;
+  c.activity = activityFromSlider(clamp(n('activity'), 0, 100));
+  c.efficiency = clamp(n('efficiency'), 5, 100) / 100;
+  c.timingResolution = ctrFromSlider(clamp(n('ctr'), 0, 100));
+  c.autoWindow = $('autoWindow').checked;
+  c.coincidenceWindow = clamp(n('coincWindow'), 1, 60);
+  c.windowLow = clamp(n('windowLow'), 200, 500);
+  c.energyResolution = clamp(n('energyRes'), 4, 25) / 100;
+  c.rings = clamp(Math.round(n('rings')), 1, 48);
+  c.maxRingDiff = {'3d': c.rings - 1, septa: 3, '2d': 0}[$('ringMode').value];
+  c.beds = clamp(Math.round(n('beds')), 1, 4);
+  c.bedStep = clamp(n('bedStep'), 4, 12);
+  if ($('conservativeMode').checked) Object.assign(c, conservativeConfig(c));
+  $('coincWindow').disabled = c.autoWindow || $('conservativeMode').checked;
+  for (const id of ['positronRange', 'nonCollinearity', 'attenuation', 'scatter', 'efficiency', 'energyRes', 'windowLow'])
+    $(id).disabled = $('conservativeMode').checked;
+  $('conservativeHelp').hidden = !$('conservativeMode').checked;
   refreshReadouts();
 }
-function reset(){pointer?.clear();makeScene();}
-function refreshReadouts(){
-  for(const [id,out,places] of [['restitution','eValue',2],['gravity','gValue',2],['drag','dragValue',2],['springK','kValue',0],['speed','speedValue',2]])$(out).textContent=n(id).toFixed(places)+(id==='speed'?'×':'');
+
+function refreshReadouts() {
+  const c = scanner.config, A = c.activity, t = scanner.phantom.target;
+  $('activityValue').textContent = A >= 1e6 ? `${(A / 1e6).toFixed(1)} MBq` : `${(A / 1e3).toFixed(0)} kBq`;
+  $('efficiencyValue').textContent = `${(c.efficiency * 100).toFixed(0)} % (pairs ${(c.efficiency ** 2 * 100).toFixed(0)} %)`;
+  const tofCm = 29.98 * c.timingResolution / 1000 / 2;
+  $('ctrValue').textContent = c.timingResolution >= 1000 ? `${(c.timingResolution / 1000).toFixed(1)} ns (Δx ≈ ${tofCm.toFixed(0)} cm)` : `${c.timingResolution} ps (Δx ≈ ${tofCm.toFixed(1)} cm)`;
+  $('coincWindowValue').textContent = `${scanner.window.toFixed(1)} ns`;
+  $('windowLowValue').textContent = `${c.windowLow} – ${c.windowHigh} keV`;
+  $('energyResValue').textContent = `${(c.energyResolution * 100).toFixed(0)} %`;
+  $('ringsValue').textContent = `${c.rings} (${scanner.axialLength.toFixed(1)} cm axial)`;
+  $('bedsValue').textContent = String(c.beds);
+  $('bedStepValue').textContent = `${c.bedStep} cm`;
+  $('tumorRatioValue').textContent = t ? `${(t.conc / scanner.phantom.body.conc).toFixed(1)} : 1` : '–';
+  $('tumorRadiusValue').textContent = t ? `${t.r.toFixed(1)} cm` : '–';
+  $('tumorZValue').textContent = t ? `${t.z.toFixed(1)} cm` : '–';
+  $('viewZValue').textContent = `${viewZ.toFixed(1)} cm`;
+  const sp = SPEEDS[clamp(Math.round(n('speed')), 0, SPEEDS.length - 1)];
+  $('speedValue').textContent = `${sp.toLocaleString()} decay${sp > 1 ? 's' : ''}/frame`;
+  $('bedReadout').textContent = c.beds > 1 ? `bed offsets ${scanner.bedOffsets.map(b => (b > 0 ? '+' : '') + b).join(', ')} cm` : 'one bed position';
 }
-function change(id){
-  if(id==='scene'||id==='count') {
-    if(id==='scene'){
-      const scene=$('scene').value;
-      if(scene==='nbody'){
-        $('gravity').value='1';$('drag').value='0';$('springK').value='85';
-        $('integrator').value='verlet';
-      } else if(scene==='springs'){
-        $('gravity').value='1.2';$('springK').value='13';
-        $('integrator').value='verlet';
-      } else {
-        $('gravity').value='0';$('springK').value='85';
-        $('integrator').value='cromer';
-      }
-    }
-    reset();return;
+
+// Reconstruction grid along z covers every bed position.
+function updateGeometry() {
+  const c = scanner.config, beds = scanner.bedOffsets, half = scanner.axialLength / 2, dz = 0.5;
+  const z0 = Math.floor((Math.min(...beds) - half) / dz) * dz, z1 = Math.ceil((Math.max(...beds) + half) / dz) * dz;
+  recon.setAxial({z0, dz, nSlices: Math.max(1, Math.round((z1 - z0) / dz))});
+  recon.setGeometry(c, beds);
+  $('viewZ').min = String(z0 + dz / 2); $('viewZ').max = String(z1 - dz / 2);
+  setViewZ(clamp(viewZ, z0 + dz / 2, z1 - dz / 2));
+}
+
+function setViewZ(z) {
+  viewZ = z; $('viewZ').value = String(z);
+  scanner.phantom.viewZ = z; recon.setViewZ(z);
+  imageDirty = true; refreshReadouts();
+  drawTruth($('truth'), scanner.phantom, recon.fov, viewZ);
+}
+
+// Start a fresh acquisition (any change to the physics or scanner invalidates collected data).
+function clearData() {
+  fixedStepper.reset();
+  scanner.reset(); animator.event = null; lastCnr = null;
+  updateGeometry();
+  recon.setAttenuationFromPhantom(scanner.phantom);
+  imageDirty = true; cnrTimer = 0;
+  $('detect').innerHTML = 'Collecting data…';
+  drawTruth($('truth'), scanner.phantom, recon.fov, viewZ);
+}
+
+function syncTumorSliders() {
+  const t = scanner.phantom.target, has = !!t;
+  for (const id of ['tumorRatio', 'tumorRadius', 'tumorZ']) $(id).disabled = !has;
+  if (has) {$('tumorRatio').value = String(t.conc / scanner.phantom.body.conc); $('tumorRadius').value = String(t.r); $('tumorZ').value = String(t.z);}
+}
+
+function setPhantom(key) {
+  scanner.setPhantom(PHANTOMS[key].make());
+  $('phantomName').textContent = PHANTOMS[key].label;
+  const editable = ['tumor', 'torso', 'uniform'].includes(key);
+  $('addLesion').disabled = !editable; $('removeLesions').disabled = !editable;
+  syncTumorSliders();
+  clearData();
+  if (scanner.phantom.target) setViewZ(scanner.phantom.target.z);
+}
+
+function applyTumor() {
+  const ph = scanner.phantom, t = ph.target; if (!t) return;
+  t.conc = n('tumorRatio') * ph.body.conc; t.r = n('tumorRadius'); t.z = n('tumorZ');
+  ph.prepare(); clearData(); setViewZ(t.z);
+}
+
+function change(id) {
+  if (id === 'debugMode') {debugMode = $('debugMode').checked; $('debugPanel').hidden = !debugMode; return;}
+  if (id === 'phantom') {setPhantom($('phantom').value); return;}
+  if (id === 'isotope') {
+    scanner.setIsotope($('isotope').value);
+    $('isotopeName').textContent = `${ISOTOPES[$('isotope').value].name} · ${ISOTOPES[$('isotope').value].use} · mean positron range ${ISOTOPES[$('isotope').value].meanRange} mm`;
+    clearData(); return;
   }
-  if(id==='integrator'){world.integrator=integrator();return;}
-  if(['trails','vectors','forceVectors','flash','energyChart'].includes(id)){flags[id]=$(id).checked;return;}
-  if(id==='mode') {pointer?.clear();return;}
-  refreshReadouts();
-  if(id==='speed'){speed=clamp(n('speed'),.25,2);return;}
-  if(id==='restitution')world.restitution=clamp(n('restitution'),0,1);
-  if(id==='drag'){
-    if($('scene').value==='nbody'){
-      $('drag').value='0';
-      $('dragValue').textContent='0.00';
-      if(drag)drag.c=0;
-      return;
-    }
-    if(drag)drag.c=n('drag');
+  if (['lors', 'animate', 'inset', 'liveCnr'].includes(id)) {flags[id] = $(id).checked; return;}
+  if (id === 'recon' || id === 'attenCorr') {recon.mlemImage = null; imageDirty = true; reconTimer = 99; return;}
+  if (id === 'speed') {refreshReadouts(); return;}
+  if (id === 'viewZ') {setViewZ(n('viewZ')); return;}
+  if (['tumorRatio', 'tumorRadius', 'tumorZ'].includes(id)) {applyTumor(); refreshReadouts(); return;}
+  readConfig(); clearData();
+}
+
+function togglePause() {
+  paused = !paused;
+  $('pause').textContent = paused ? 'Resume' : 'Pause';
+  $('status').textContent = paused ? 'Paused' : 'Running';
+}
+
+// Full scene reset, unlike Clear which only restarts the acquisition with current controls.
+function resetScene() {
+  for (const id of [...new Set([...SLIDER_IDS, ...CHECK_IDS, ...CHANGE_IDS])]) {
+    const el = $(id);
+    if (el.type === 'checkbox') el.checked = el.defaultChecked;
+    else if (el.tagName === 'SELECT') el.selectedIndex = Math.max(0, [...el.options].findIndex(o => o.defaultSelected));
+    else el.value = el.defaultValue;
   }
-  if(id==='springK'){
-    if($('scene').value!=='springs')return;
-    mouseSpring.k=clamp(n('springK'),10,180);
-    for(const f of world.forces)if(f instanceof Spring)f.k=mouseSpring.k;
+  debugMode = false; $('debugPanel').hidden = true;
+  flags.lors = flags.animate = flags.inset = flags.liveCnr = true;
+  paused = false; $('pause').textContent = 'Pause'; $('status').textContent = 'Running';
+  scanner.setIsotope($('isotope').value);
+  readConfig(); setPhantom('tumor'); viewZ = 0; setViewZ(0);
+  lastTime = 0; fixedStepper.reset();
+}
+
+function step() {
+  if (!paused) togglePause();
+  const featured = scanner.acquire(1, {recordFirst: true, flush: true});
+  if (featured) animator.start(featured);
+  imageDirty = true;
+}
+
+function speedKey(delta) {$('speed').value = String(clamp(n('speed') + delta, 0, SPEEDS.length - 1)); refreshReadouts();}
+function sliceKey(delta) {setViewZ(clamp(viewZ + delta * recon.dz, parseFloat($('viewZ').min), parseFloat($('viewZ').max)));}
+
+// ---- Tumor detectability --------------------------------------------------------------------
+function measureCnr() {
+  const ph = scanner.phantom, t = ph.target, el = $('detect');
+  if (!t) {el.innerHTML = '<span class="muted">This phantom has no tumor. Choose “Water cylinder with a tumor”.</span>'; return;}
+  const k0 = recon.sliceOf(t.z - 0.5), k1 = recon.sliceOf(t.z + 0.49);
+  if (k1 < 0 || k0 >= recon.nSlices || recon.sliceSens[Math.max(0, Math.min(recon.nSlices - 1, Math.round((k0 + k1) / 2)))] === 0) {
+    el.innerHTML = '<span class="verdict warn">Not detected</span><span class="muted">The tumor is outside the axial field of view. Add bed positions or more rings.</span>';
+    lastCnr = null; return;
   }
-  if(id==='gravity'){
-    if($('scene').value==='nbody'){
-      reset(); // Recreate orbits with velocities suited to the new G.
-      return;
-    }
-    if(gravity)gravity.g=n('gravity');
+  const events = recon.sinoSlab(Math.max(0, k0), Math.min(recon.nSlices - 1, k1)).reduce((a, b) => a + b, 0);
+  if (events < 200) {el.innerHTML = `<span class="muted">Only ${events} events in the tumor slab so far…</span>`; return;}
+  const t0 = performance.now();
+  const img = recon.mlemSlab($('attenCorr').checked, 6, Math.max(0, k0), Math.min(recon.nSlices - 1, k1));
+  const r = tumorCNR(img, recon, ph, t.z);
+  lastCnr = r ? {...r, z: t.z} : null;
+  if (!r || !Number.isFinite(r.cnr)) {el.innerHTML = '<span class="muted">Not enough background area to measure the noise.</span>'; return;}
+  const ok = r.cnr >= ROSE_K;
+  el.innerHTML = `<span class="verdict ${ok ? 'good' : 'warn'}">${ok ? 'Detected' : 'Not detected'}</span>` +
+    `<div class="hudRow"><span class="hudLabel">Contrast-to-noise ratio</span><span class="hudValue ${ok ? 'good' : 'warn'}">${r.cnr.toFixed(1)} (need ≥ ${ROSE_K})</span></div>` +
+    `<div class="hudRow"><span class="hudLabel">Measured contrast (true ${(t.conc / ph.body.conc - 1).toFixed(1)})</span><span class="hudValue">${r.contrast.toFixed(2)}</span></div>` +
+    `<div class="hudRow"><span class="hudLabel">Events in 1 cm tumor slab</span><span class="hudValue">${events.toLocaleString()}</span></div>` +
+    `<div class="hudRow"><span class="hudLabel">Background ROIs / MLEM time</span><span class="hudValue">${r.bgRois.length} / ${(performance.now() - t0).toFixed(0)} ms</span></div>`;
+}
+
+function gotoTumor() {const t = scanner.phantom.target; if (t) setViewZ(t.z);}
+
+// ---- Lesion editing -------------------------------------------------------------------------
+function addLesionAt(x, y) {
+  const ph = scanner.phantom, body = ph.body;
+  if (ph.regions.filter(r => r.added).length >= 8) return;
+  const r = 0.8, d = Math.hypot(x - body.x, y - body.y), max = body.r - r - 0.2;
+  if (d > max) {x = body.x + (x - body.x) * max / d; y = body.y + (y - body.y) * max / d;}
+  ph.regions.push({name: 'Added lesion', shape: 'sphere', x, y, z: viewZ, r, material: 'water', mu: 0.096, density: 1,
+    conc: n('tumorRatio') * body.conc, movable: true, added: true});
+  ph.prepare(); clearData();
+}
+function addLesionRandom() {
+  const b = scanner.phantom.body, a = Math.random() * 2 * Math.PI, r = Math.random() * (b.r - 2);
+  addLesionAt(b.x + r * Math.cos(a), b.y + r * Math.sin(a));
+}
+function removeLesions() {
+  const ph = scanner.phantom; ph.regions = ph.regions.filter(r => !r.added); ph.prepare(); clearData();
+}
+
+canvas.addEventListener('pointerdown', e => {
+  const p = eventToWorld(e, canvas, camera), ph = scanner.phantom;
+  const hit = ph.crossSection(viewZ).reverse().find(c => c.region.movable && Math.hypot(p.x - c.x, p.y - c.y) <= c.r + 0.6);
+  if (hit) {drag = {region: hit.region, id: e.pointerId}; canvas.setPointerCapture(e.pointerId); return;}
+  const editable = ['tumor', 'torso', 'uniform'].includes(ph.name);
+  if (editable && Math.hypot(p.x - ph.body.x, p.y - ph.body.y) < ph.body.r) addLesionAt(p.x, p.y);
+});
+canvas.addEventListener('pointermove', e => {
+  const p = eventToWorld(e, canvas, camera); cursor = p;
+  $('cursorReadout').textContent = `Cursor: (${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${viewZ.toFixed(1)}) cm · r = ${Math.hypot(p.x, p.y).toFixed(1)} cm`;
+  if (drag && drag.id === e.pointerId) {
+    const ph = scanner.phantom, b = ph.body, r = drag.region, max = b.r - r.r - 0.2;
+    let x = p.x, y = p.y; const d = Math.hypot(x - b.x, y - b.y);
+    if (d > max) {x = b.x + (x - b.x) * max / d; y = b.y + (y - b.y) * max / d;}
+    r.x = x; r.y = y; ph.prepare(); clearData();
   }
-  // Parameter changes can add/remove energy: use a new baseline for comparison.
-  if(['gravity','springK','restitution','drag'].includes(id)){E0=world.totalEnergy();history=[];lastHistory=-1;}
-}
-function togglePause(){paused=!paused;accumulator=0;$('pause').textContent=paused?'Resume':'Pause';$('status').textContent=paused?'Paused':'Running';}
-function stepOnce(){
-  if(!paused)togglePause();
-  accumulator=0;stepPhysics(); // exactly one DT: not one animation frame
-  renderScene();
-}
-function speedKey(delta){const value=clamp(speed+delta,.25,2);$('speed').value=String(value);change('speed');}
-/* recording function added for bonus lab10 */
-function recordSnapshot(){
-  if(exportRows.length+world.bodies.length>MAX_EXPORT_ROWS)return;
+});
+const endDrag = e => {if (drag && drag.id === e.pointerId) {drag = null; if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);}};
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+canvas.addEventListener('pointerleave', () => {cursor = null; $('cursorReadout').textContent = 'Move pointer onto canvas';});
 
-  const totalEnergy=world.totalEnergy();
+// ---- CSV export ------------------------------------------------------------------------------
+function download() {
+  const header = 'time_ns,crystal1,crystal2,ring1,ring2,x1_cm,y1_cm,z1_cm,x2_cm,y2_cm,z2_cm,bed_cm,dt_ns,E1_keV,E2_keV,type,true_x_cm,true_y_cm,true_z_cm';
+  const f = (v, d) => v?.toFixed(d) ?? '';
+  const rows = scanner.events.map(e => [e.t.toFixed(4), e.c1, e.c2, e.r1, e.r2, f(e.x1, 3), f(e.y1, 3), f(e.z1, 3), f(e.x2, 3), f(e.y2, 3), f(e.z2, 3),
+    e.bed, e.dt.toFixed(5), e.E1.toFixed(2), e.E2.toFixed(2), e.type, f(e.ax, 4), f(e.ay, 4), f(e.az, 4)].join(','));
+  const blob = new Blob([[header, ...rows].join('\n')], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = `pet_listmode_${scanner.phantom.name}_${scanner.config.isotope}.csv`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
-  for(const b of world.bodies){
-    exportRows.push([
-      world.time,
-      b.id,
-      b.pos.x,
-      b.pos.y,
-      b.vel.x,
-      b.vel.y,
-      b.kineticEnergy(),
-      totalEnergy
-    ]);
+// ---- Loop --------------------------------------------------------------------------------------
+function updateImage() {
+  const mode = $('recon').value, t = performance.now(), useAC = $('attenCorr').checked;
+  const img = recon.reconstruct(mode, {useAC, ctrPs: scanner.config.timingResolution, mlemIterations: 6});
+  const evs = recon.sino.reduce((a, b) => a + b, 0);
+  const sub = `${evs.toLocaleString()} events in slice` + (mode === 'mlem' ? ` · ${recon.mlemIterations} iterations` : '') +
+    (mode.startsWith('tof') ? ` · CTR ${scanner.config.timingResolution} ps` : '') + (useAC ? ' · AC on' : ' · no AC');
+  const showRoi = lastCnr && Math.abs(lastCnr.z - viewZ) < 0.5;
+  drawImage($('image'), img, recon.nPix, `${RECON_NAMES[mode]}, z = ${viewZ.toFixed(1)} cm`, sub, showRoi ? {cnr: lastCnr, fov: recon.fov} : null);
+  drawSinogram($('sinogram'), recon.sino, recon.nAngles, recon.nS);
+  drawSpectrum($('spectrum'), scanner.spectrum, scanner.config.windowLow, scanner.config.windowHigh);
+  reconMs = performance.now() - t;
+  imageDirty = false;
+}
+
+function frame(ms) {
+  const now = ms / 1000, dt = lastTime ? clamp(now - lastTime, 0, 0.1) : 0; lastTime = now;
+  if (dt > 0) fps = 0.94 * fps + 0.06 / dt;
+  if (!paused) {
+    const t = performance.now();
+    fixedStepper.advance(dt, () => {
+      const want = flags.animate && animator.ready;
+      const featured = scanner.acquire(SPEEDS[clamp(Math.round(n('speed')), 0, SPEEDS.length - 1)], {recordFirst: want});
+      if (featured) animator.start(featured);
+      imageDirty = true;
+    });
+    physicsMs = performance.now() - t;
+  } else fixedStepper.reset();
+  animator.update(dt);
+  for (let i = 0; i < scanner.crystalHits.length; i++) scanner.crystalHits[i] *= 0.9;
+  for (let i = 0; i < scanner.ringHits.length; i++) scanner.ringHits[i] *= 0.9;
+  renderer.draw(scanner, flags, animator, cursor, viewZ);
+  sideRenderer.draw(scanner, flags, animator, viewZ);
+  reconTimer += dt; hudTimer += dt; cnrTimer += dt; coronalTimer += dt;
+  const mode = $('recon').value, reconEvery = mode === 'tofmlem' ? 3 : mode === 'mlem' || mode === 'tof' ? 1.0 : 0.5;
+  if (imageDirty && (reconTimer > reconEvery || paused && reconTimer > 0.3)) {reconTimer = 0; updateImage();}
+  if (coronalTimer > 2) {
+    coronalTimer = 0;
+    drawCoronal($('coronal'), recon.reconstructVolume($('attenCorr').checked), recon, scanner.phantom.target?.y ?? 0, {viewZ});
+  }
+  if (flags.liveCnr && !paused && cnrTimer > 3) {cnrTimer = 0; measureCnr();}
+  if (hudTimer > 0.2) {
+    hudTimer = 0;
+    updatePetHUD($('hud'), scanner, recon, {fps, physicsMs, reconMs});
+    if (debugMode) updateDebugHUD();
+    $('eventCaption').textContent = flags.animate ? animator.caption() : 'Slow-motion replay is off.';
+  }
+  requestAnimationFrame(frame);
+}
+
+function updateDebugHUD() {
+  const a = scanner.lastAnnihilation;
+  const E0 = a?.residual.E ?? 2 * 511;
+  const E = a ? a.photons[0].E + a.photons[1].E : E0;
+  const drift = 100 * (E - E0) / E0;
+  const p = a ? [0, 1, 2].map(j => a.photons[0].p[j] + a.photons[1].p[j]) : [0, 0, 0];
+  const pMag = Math.hypot(...p);
+  const pClosure = a?.momentumError ?? 0;
+  const tolPct = 1e-8;   // numerical roundoff tolerance in percent (event-level)
+  const tooHigh = Math.abs(drift) > tolPct;
+  const row = (name, val, cls = '') => `<div class="hudRow"><span class="hudLabel">${name}</span><span class="hudValue ${cls}">${val}</span></div>`;
+  $('debugHud').innerHTML =
+    row('E₀, initial pair energy', `${E0.toFixed(9)} keV`) +
+    row('Total photon energy, ΣEγ', `${E.toFixed(9)} keV`) +
+    row('Energy drift, (ΣEγ−E₀)/E₀', `${drift.toExponential(2)} %`, tooHigh ? 'warn' : 'good') +
+    row('Total photon momentum |Σpγ|', `${pMag.toFixed(6)} keV/c`) +
+    row('Momentum closure error', `${pClosure.toExponential(2)} keV/c`) +
+    row('Positron engine body count', `${scanner.positron.world.bodies.length}`) +
+    row('Body contacts resolved this step', '0 (no rigid collisions)') +
+    row('Max photon speed', '2.998 × 10¹⁰ cm/s') +
+    row('Measured FPS', `${fps.toFixed(1)}`) +
+    row('Fixed simulation ticks', `${fixedStepper.steps}`) +
+    row('Backlog discarded', `${fixedStepper.droppedSeconds.toFixed(3)} s`);
+}
+
+function resize() {
+  for (const [cv, cam, view] of [[canvas, camera, VIEW], [side, sideCamera, SIDE_VIEW]]) {
+    const rect = cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.max(1, Math.round(rect.width * dpr)); cv.height = Math.max(1, Math.round(rect.height * dpr));
+    cam.setView(view);
   }
 }
-function stepPhysics(){
-  const before=flags.flash?world.bodies.map(b=>({x:b.pos.x,y:b.pos.y,vx:b.vel.x,vy:b.vel.y})):null;
-  world.step(DT);
-  /*adding data recording at every .1s for bonus lab 10*/
-  if(world.time+1e-9>=nextExportTime){
-  recordSnapshot();
-  nextExportTime+=0.1;
-}
-  if(flags.flash&&world.collisionsEnabled&&world.bodies.length<110){
-    for(let i=0;i<world.bodies.length;i++)for(let j=i+1;j<world.bodies.length;j++){
-      const a=world.bodies[i],b=world.bodies[j],d=a.pos.sub(b.pos);
-      if(d.lengthSq()>(a.radius+b.radius+.02)**2)continue;
-      const va=before[i],vb=before[j];
-      if(Math.hypot(a.vel.x-va.vx,a.vel.y-va.vy)+Math.hypot(b.vel.x-vb.vx,b.vel.y-vb.vy)>.15){
-        overlay.flashes.push({x:(a.pos.x+b.pos.x)/2,y:(a.pos.y+b.pos.y)/2,t:world.time});
-      }
-    }
-  }
-  if(flags.trails){for(const b of world.bodies){if(world.time%(.05)<DT){b.trail.push(b.pos.copy());if(b.trail.length>180)b.trail.shift();}}}
-  if(world.time-lastHistory>=.1){history.push({t:world.time,energy:world.totalEnergy()});if(history.length>120)history.shift();lastHistory=world.time;}
-  overlay.flashes=overlay.flashes.filter(p=>world.time-p.t<.17).slice(-30);
-}
-function renderScene(){
-  const t=performance.now();renderer.draw(world,flags.trails);drawOverlays(renderer,world,flags,overlay,history,gravity?gravity.g:0);renderMs=performance.now()-t;
-  updateHUD($('hud'),world,{fps,physicsMs,renderMs,E0,scene:$('scene').value});
-  $('cursorReadout').textContent=overlay.cursor?`Cursor: (${overlay.cursor.x.toFixed(2)}, ${overlay.cursor.y.toFixed(2)}) m`:'Move pointer onto canvas';
-}
-function frame(ms){
-  const now=ms/1000,delta=lastTime?clamp(now-lastTime,0,.05):0;lastTime=now;
-  if(delta>0)fps=.94*fps+.06/delta;
-  if(!paused){
-    accumulator+=delta*speed;
-    let count=0;const start=performance.now();
-    while(accumulator+1e-12>=DT&&count<16){stepPhysics();accumulator-=DT;count++;}
-    physicsMs=performance.now()-start;
-    // Don't retain an ever-growing backlog after a suspended browser tab.
-    if(count===16)accumulator=Math.min(accumulator,DT);
-  }
-  renderScene();requestAnimationFrame(frame);
-}
-function resize(){const rect=canvas.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);
-  canvas.width=Math.max(1,Math.round(rect.width*dpr));canvas.height=Math.max(1,Math.round(rect.height*dpr));
-  camera.setView(active.view);
-}
-async function benchmark(){
-  const button=$('benchmark'),oldPaused=paused;
-  if(!paused)togglePause();button.disabled=true;
-  $('benchResults').textContent='Measuring…';const rows=[];
-  try{
-    for(const size of [20,50,100,200]){
-      const scene=createScene('billiards',size,1);let physics=0,render=0;
-      for(let j=0;j<120;j++){
-        let t=performance.now();scene.world.step(DT);physics+=performance.now()-t;
-        t=performance.now();renderer.draw(scene.world);render+=performance.now()-t;
-      }
-      rows.push({size,p:physics/120,r:render/120});
-      await new Promise(requestAnimationFrame);
-    }
-    $('benchResults').innerHTML='<table><thead><tr><th>Bodies</th><th>Physics ms</th><th>Render ms</th></tr></thead><tbody>'+rows.map(v=>`<tr><td>${v.size}</td><td>${v.p.toFixed(3)}</td><td>${v.r.toFixed(3)}</td></tr>`).join('')+'</tbody></table>';
-  }finally{button.disabled=false;if(!oldPaused)togglePause();accumulator=0;lastTime=0;}
-}
-/*added control for downloading csv lab10 bonus*/
-function downloadCSV(){
-  const header="time,body_id,x,y,vx,vy,kinetic_energy,total_energy";
 
-  const rows=exportRows.map(row=>row.join(","));
-  const csv=[header,...rows].join("\n");
-
-  const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
-  const url=URL.createObjectURL(blob);
-
-  const link=document.createElement("a");
-  link.href=url;
-  link.download="lab10_simulation_data.csv";
-
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-
-$("downloadCSV").addEventListener("click",downloadCSV);
-wireControls({change,pause:togglePause,step:stepOnce,reset,benchmark,speed:speedKey});
-for(const key of Object.keys(flags))$(key).checked=flags[key];
-makeScene();
-pointer=setupPointer(canvas,camera,()=>world,()=>$('mode').value,{
-  get body(){return mouseSpring.body;},set body(x){mouseSpring.body=x;},
-  get target(){return mouseSpring.target;},set target(x){mouseSpring.target=x;}
-},overlay,()=>{});
-window.addEventListener('resize',resize);
-resize();requestAnimationFrame(frame);
+wireControls({change, pause: togglePause, step, clear: clearData, reset: resetScene, debug: () => { $('debugMode').checked = !$('debugMode').checked; change('debugMode'); }, speed: speedKey, slice: sliceKey, addLesion: addLesionRandom,
+  removeLesions, download, gotoTumor, measureCnr});
+readConfig();
+change('isotope');
+setPhantom('tumor');
+window.addEventListener('resize', resize);
+resize();
+requestAnimationFrame(frame);
