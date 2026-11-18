@@ -25,6 +25,8 @@ export function wireControls(actions) {
   $('measureCnr').addEventListener('click', actions.measureCnr);
   $('downloadCSV').addEventListener('click', actions.download);
   window.addEventListener('keydown', e => {
+    // Let readers use Space/arrow keys normally on the physics explanation page.
+    if (document.getElementById('simulationView')?.hidden) return;
     const tag = e.target?.tagName;
     if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(tag) || e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.code === 'Space') {e.preventDefault(); actions.pause();}
