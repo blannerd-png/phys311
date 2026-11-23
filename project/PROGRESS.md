@@ -2,7 +2,7 @@
 
 **Project:** PET scanner: can it find the tumor?  
 **Date prepared:** November 17, 2026  
-**Live URL:** _not yet supplied / not published or verified from this workspace_  
+**Live URL:** (http://blannerd-png.github.io/phys311/project/#simulation)  
 **Source:** `project/` in the class GitHub repository
 
 ## A — MUST tier status
@@ -26,7 +26,7 @@
 
 **Implemented** as a checkbox. It disables positron slowing/range, non-collinearity, attenuation, Compton scattering, detector inefficiency and energy smearing. Photons propagate in straight lines and the pair is created at rest: 511 + 511 keV. The ring still has finite coverage, so detected events can be fewer than generated events. This is the applicable lossless limit for a PET detector, rather than a fictitious ball-collision e=1 setting.
 
-## B3 — Two proposal-relevant numerical validation tests
+## B3 — Validation Results
 
 Both were **executed** using `node week12_validation.mjs` (seeded, repeatable); values below are actual measurements from the supplied code and this run.
 
@@ -41,12 +41,12 @@ Additional checks: idealized mode yielded zero energy and momentum closure withi
 
 See `DECISIONS.md` for 3-line decision entries.
 
-## Two concrete bugs addressed
+## Two bugs I fixed
 
 1. **Physics/time-integration bug** — **Symptom:** the original `main.js` acquired a fixed batch of decays once per visual frame; reducing browser FPS reduced the simulated acquisition rate, changing the number of events and measured tumor CNR at a given wall-clock interval. **Cause:** Monte Carlo advancement was tied to `requestAnimationFrame`, with no fixed-step accumulator. **Fix:** advance acquisition from `FixedStepAccumulator` at 1/60 s, independent of render frequency. **Evidence:** 30/60/120 FPS → 60/60/60 steps in one second. Heavy overload still drops backlog intentionally and is reported on HUD.
 2. **Reset/interaction bug** — **Symptom:** the original **Clear** button discarded counts but preserved a moved tumor and changed detector settings, so the initial scene could not be restored in one action. **Cause:** only `clearData()` existed; it called `scanner.reset()` but never restored the phantom or UI defaults. **Fix:** add separate **Reset scene** button and R key handler; rebuild default phantom and default controls, reset acquisition and the event-energy baseline. Keep **Clear data** for intentionally restarting an experiment with the current parameters. **Evidence:** added handler and source checks; browser interaction still requires live verification.
 
-## Week 13: first three SHOULD priorities
+## Next week's plan
 
 1. Validate and describe the **time-of-flight reconstruction** gain as CTR varies, using the already implemented TOF/normal comparisons and adding uncertainties.
 2. Stress-test **3D ring coverage and bed stepping** at z = 9 cm, especially two- and three-bed cases, with an accessible public demo.
@@ -54,10 +54,9 @@ See `DECISIONS.md` for 3-line decision entries.
 
 ## Submission / verification remaining
 
-- Push files to `project/`, configure GitHub Pages, open the exact live URL in an incognito tab, verify no console errors and repeat the D / conservative / reset interactions.
-- Run DevTools CPU throttling with two frame rates and compare count progression over **equal simulated ticks** (not equal frames).
-- Put the real live URL in the Canvas submission and the drafted check-in/beta posts; post them at the required times and reply to one peer.
-- Submit journal and paste or attach this progress log in Canvas.
-- Git history and any 15-commit bonus must reflect actual commits; none are claimed in this log.
+Bonus on phone:
+<img width="1290" height="2796" alt="image" src="https://github.com/user-attachments/assets/6abde2be-9ba1-43ca-8087-1286382c0499" />
 
-**Known limitation:** the available sandbox Chromium browser blocks both localhost and file navigation (`ERR_BLOCKED_BY_ADMINISTRATOR`), so a full visual browser smoke test was not possible here. Node-based numerical and file integrity checks were run instead.
+
+
+**Known limitation:** the available sandbox Chromium browser blocks both localhost and file navigation (`ERR_BLOCKED_BY_ADMINISTRATOR`), so a full visual browser smoke test was not possible here. Node-based numerical and file integrity checks were run instead. Also simulation fps is impacted by CPU throttling but simulation was still very usable. 
