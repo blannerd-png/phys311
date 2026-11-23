@@ -1,5 +1,5 @@
 # Week 12 — PET scanner build sprint progress log
-Note: AI was used to help organize this progress report. 
+Note: AI was used to help organize this progress report. <break>
 **Project:** PET scanner: can it find the tumor?  
 **Date last updated:** November 22, 2026  
 **Live URL:** (http://blannerd-png.github.io/phys311/project/#simulation)  
