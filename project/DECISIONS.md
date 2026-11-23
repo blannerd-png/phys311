@@ -1,5 +1,5 @@
 # Week 12 — Scope and Implementation Decisions
-
+Disclaimer: AI was used to help format this document. 
 ## November 17, 2026 — Keep the MUST Tier Narrow
 
 **Decision:** Focus the MUST tier on relativistic electron–positron annihilation, PET detector coincidences, and tumor detectability. Retain time-of-flight reconstruction, bed stepping, and Compton scattering as optional extensions.
