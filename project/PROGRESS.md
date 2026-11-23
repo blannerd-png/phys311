@@ -1,7 +1,7 @@
 # Week 12 — PET scanner build sprint progress log
-
+Note: AI was used to help organize this progress report. 
 **Project:** PET scanner: can it find the tumor?  
-**Date prepared:** November 17, 2026  
+**Date last updated:** November 22, 2026  
 **Live URL:** (http://blannerd-png.github.io/phys311/project/#simulation)  
 **Source:** `project/` in the class GitHub repository
 
@@ -14,7 +14,7 @@
 | One new thing: simulated PET detector coincidences + tumor detectability | **Done in source** | 3D photon-pair simulation; configurable detection efficiency/timing; true/scatter/random coincidence sorting; reconstructed CNR and Rose criterion CNR ≥ 5. |
 | Keyboard-accessible interaction | **Implemented** | Sliders, buttons and checkboxes plus Space, D, R, period and slice keys. |
 | Reset builds initial scene and resets E₀ baseline | **Implemented** | Added **Reset scene** / R; rebuilds phantom, default controls and a zeroed acquisition. The event-level initial pair energy E₀ is re-established from the next annihilation. |
-| GitHub Pages live and clean console | **Pending user deployment** | Files are Pages-ready and use relative paths; no live URL or deployed console verification available. |
+| GitHub Pages live and clean console | **Implemented** | Tested on both PC and Iphone |
 
 ## B1 — Debug HUD (12-point rubric)
 
