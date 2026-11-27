@@ -22,7 +22,7 @@ const animator = new EventAnimator();
 const scanner = new Scanner(PHANTOMS.tumor.make(), {bedDwell: 40});
 scanner.onCoincidence = ev => recon.add(ev);
 
-const flags = {lors: true, animate: true, inset: true, liveCnr: true};
+const flags = {lors: true, animate: true, inset: $('inset').checked, liveCnr: true};
 const RECON_NAMES = {fbp: 'Filtered backprojection', bp: 'Simple backprojection', mlem: 'MLEM', tof: 'TOF backprojection', tofmlem: 'TOF MLEM'};
 let paused = false, cursor = null, lastTime = 0, fps = 60, physicsMs = 0, reconMs = 0;
 let reconTimer = 0, hudTimer = 0, cnrTimer = 0, coronalTimer = 0, imageDirty = true, drag = null, viewZ = 0, lastCnr = null;
@@ -30,6 +30,7 @@ const fixedStepper = new FixedStepAccumulator();
 let debugMode = new URLSearchParams(window.location.search).get('debug') === '1';
 $('debugMode').checked = debugMode;
 $('debugPanel').hidden = !debugMode;
+if (debugMode) $('diagnosticsOptions').open = true;
 
 const n = id => parseFloat($(id).value);
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -47,6 +48,7 @@ function readConfig() {
   c.autoWindow = $('autoWindow').checked;
   c.coincidenceWindow = clamp(n('coincWindow'), 1, 60);
   c.windowLow = clamp(n('windowLow'), 200, 500);
+  c.windowHigh = 650;
   c.energyResolution = clamp(n('energyRes'), 4, 25) / 100;
   c.rings = clamp(Math.round(n('rings')), 1, 48);
   c.maxRingDiff = {'3d': c.rings - 1, septa: 3, '2d': 0}[$('ringMode').value];
@@ -77,7 +79,7 @@ function refreshReadouts() {
   $('tumorZValue').textContent = t ? `${t.z.toFixed(1)} cm` : '–';
   $('viewZValue').textContent = `${viewZ.toFixed(1)} cm`;
   const sp = SPEEDS[clamp(Math.round(n('speed')), 0, SPEEDS.length - 1)];
-  $('speedValue').textContent = `${sp.toLocaleString()} decay${sp > 1 ? 's' : ''}/frame`;
+  $('speedValue').textContent = `${sp.toLocaleString()} decay${sp > 1 ? 's' : ''}/tick`;
   $('bedReadout').textContent = c.beds > 1 ? `bed offsets ${scanner.bedOffsets.map(b => (b > 0 ? '+' : '') + b).join(', ')} cm` : 'one bed position';
 }
 
@@ -132,7 +134,7 @@ function applyTumor() {
 }
 
 function change(id) {
-  if (id === 'debugMode') {debugMode = $('debugMode').checked; $('debugPanel').hidden = !debugMode; return;}
+  if (id === 'debugMode') {debugMode = $('debugMode').checked; $('debugPanel').hidden = !debugMode; if (debugMode) $('diagnosticsOptions').open = true; return;}
   if (id === 'phantom') {setPhantom($('phantom').value); return;}
   if (id === 'isotope') {
     scanner.setIsotope($('isotope').value);
@@ -161,8 +163,9 @@ function resetScene() {
     else if (el.tagName === 'SELECT') el.selectedIndex = Math.max(0, [...el.options].findIndex(o => o.defaultSelected));
     else el.value = el.defaultValue;
   }
+  $('showRoi').checked = false;
   debugMode = false; $('debugPanel').hidden = true;
-  flags.lors = flags.animate = flags.inset = flags.liveCnr = true;
+  for (const id of ['lors', 'animate', 'inset', 'liveCnr']) flags[id] = $(id).checked;
   paused = false; $('pause').textContent = 'Pause'; $('status').textContent = 'Running';
   scanner.setIsotope($('isotope').value);
   readConfig(); setPhantom('tumor'); viewZ = 0; setViewZ(0);
@@ -200,7 +203,7 @@ function measureCnr() {
     `<div class="hudRow"><span class="hudLabel">Contrast-to-noise ratio</span><span class="hudValue ${ok ? 'good' : 'warn'}">${r.cnr.toFixed(1)} (need ≥ ${ROSE_K})</span></div>` +
     `<div class="hudRow"><span class="hudLabel">Measured contrast (true ${(t.conc / ph.body.conc - 1).toFixed(1)})</span><span class="hudValue">${r.contrast.toFixed(2)}</span></div>` +
     `<div class="hudRow"><span class="hudLabel">Events in 1 cm tumor slab</span><span class="hudValue">${events.toLocaleString()}</span></div>` +
-    `<div class="hudRow"><span class="hudLabel">Background ROIs / MLEM time</span><span class="hudValue">${r.bgRois.length} / ${(performance.now() - t0).toFixed(0)} ms</span></div>`;
+    `<span class="note">${r.bgRois.length} background regions</span>`;
 }
 
 function gotoTumor() {const t = scanner.phantom.target; if (t) setViewZ(t.z);}
@@ -264,10 +267,12 @@ function updateImage() {
   const evs = recon.sino.reduce((a, b) => a + b, 0);
   const sub = `${evs.toLocaleString()} events in slice` + (mode === 'mlem' ? ` · ${recon.mlemIterations} iterations` : '') +
     (mode.startsWith('tof') ? ` · CTR ${scanner.config.timingResolution} ps` : '') + (useAC ? ' · AC on' : ' · no AC');
-  const showRoi = lastCnr && Math.abs(lastCnr.z - viewZ) < 0.5;
+  const showRoi = $('showRoi').checked && lastCnr && Math.abs(lastCnr.z - viewZ) < 0.5;
   drawImage($('image'), img, recon.nPix, `${RECON_NAMES[mode]}, z = ${viewZ.toFixed(1)} cm`, sub, showRoi ? {cnr: lastCnr, fov: recon.fov} : null);
-  drawSinogram($('sinogram'), recon.sino, recon.nAngles, recon.nS);
-  drawSpectrum($('spectrum'), scanner.spectrum, scanner.config.windowLow, scanner.config.windowHigh);
+  if ($('extraViews').open) {
+    drawSinogram($('sinogram'), recon.sino, recon.nAngles, recon.nS);
+    drawSpectrum($('spectrum'), scanner.spectrum, scanner.config.windowLow, scanner.config.windowHigh);
+  }
   reconMs = performance.now() - t;
   imageDirty = false;
 }
@@ -290,7 +295,7 @@ function frame(ms) {
   for (let i = 0; i < scanner.crystalHits.length; i++) scanner.crystalHits[i] *= 0.9;
   for (let i = 0; i < scanner.ringHits.length; i++) scanner.ringHits[i] *= 0.9;
   renderer.draw(scanner, flags, animator, cursor, viewZ);
-  sideRenderer.draw(scanner, flags, animator, viewZ);
+  if ($('extraViews').open) sideRenderer.draw(scanner, flags, animator, viewZ);
   if (!firstFrameDrawn) {
     firstFrameDrawn = true;
     window.dispatchEvent(new Event('pet:ready'));
@@ -298,7 +303,7 @@ function frame(ms) {
   reconTimer += dt; hudTimer += dt; cnrTimer += dt; coronalTimer += dt;
   const mode = $('recon').value, reconEvery = mode === 'tofmlem' ? 3 : mode === 'mlem' || mode === 'tof' ? 1.0 : 0.5;
   if (imageDirty && (reconTimer > reconEvery || paused && reconTimer > 0.3)) {reconTimer = 0; updateImage();}
-  if (coronalTimer > 2) {
+  if (coronalTimer > 2 && $('extraViews').open) {
     coronalTimer = 0;
     drawCoronal($('coronal'), recon.reconstructVolume($('attenCorr').checked), recon, scanner.phantom.target?.y ?? 0, {viewZ});
   }
@@ -339,7 +344,8 @@ function updateDebugHUD() {
 
 function resize() {
   for (const [cv, cam, view] of [[canvas, camera, VIEW], [side, sideCamera, SIDE_VIEW]]) {
-    const rect = cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = cv.getBoundingClientRect(); if (!rect.width || !rect.height) continue;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     cv.width = Math.max(1, Math.round(rect.width * dpr)); cv.height = Math.max(1, Math.round(rect.height * dpr));
     cam.setView(view);
   }
@@ -351,5 +357,7 @@ readConfig();
 change('isotope');
 setPhantom('tumor');
 window.addEventListener('resize', resize);
+$('showRoi').addEventListener('change', () => { imageDirty = true; reconTimer = 99; });
+$('extraViews').addEventListener('toggle', () => { if ($('extraViews').open) { resize(); imageDirty = true; coronalTimer = 99; } });
 resize();
 requestAnimationFrame(frame);

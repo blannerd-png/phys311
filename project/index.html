@@ -11,164 +11,139 @@
   <div>
     <p class="eyebrow">PHYS 311 · FINAL PROJECT</p>
     <h1>PET scanner: can it find the tumor?</h1>
-    <p class="subtitle">Positrons from a tracer annihilate into back-to-back 511 keV photons. A ring of detectors with a given
-      efficiency and time resolution records coincidences, and the image shows where the tracer collected. Change the detector and see when a
-      3D tumor stops being detectable.</p>
+    <p class="subtitle">Explore how a PET scanner builds an image from pairs of 511 keV photons. Change the detector and discover when a simulated tumor becomes visible.</p>
   </div>
-  <span class="tag">3D · MONTE CARLO</span>
+  
 </header>
 <nav class="page-switch" aria-label="PET project pages">
   <button type="button" class="page-tab is-active" data-page="simulation" aria-controls="simulationView" aria-pressed="true">◉ &nbsp;Interactive Simulation</button>
   <button type="button" class="page-tab" data-page="physics" aria-controls="physicsView" aria-pressed="false">∑ &nbsp;Simulation Details: The Physics</button>
 </nav>
 
-<main id="simulationView">
-  <div class="leftcol">
-    <section class="stage">
-      <div class="topline"><span id="phantomName">Phantom</span><span id="status">Running</span></div>
-      <div id="simulationStartupError" class="startup-error" role="alert" hidden>
-        <strong>The simulation could not start.</strong>
-        <p id="simulationStartupDetail">The JavaScript modules did not load.</p>
-        <p>Open this project through <code>http://localhost:8000</code> instead of double-clicking <code>index.html</code>. If that does not fix it, check that <code>main.js</code>, <code>ui.js</code>, <code>engine/</code>, <code>recon/</code>, <code>render/</code> and <code>runtime/</code> are all in this project folder. Press F12 → Console for the exact error.</p>
-      </div>
-      <canvas id="sim" width="900" height="900" tabindex="0" aria-label="Transverse view of the scanner"></canvas>
-      <div class="legend">
-        <span><i class="line true"></i>true coincidence</span><span><i class="line scatter"></i>scattered</span>
-        <span><i class="line random"></i>random</span><span><i class="dot gold"></i>decay</span><span><i class="dot orange"></i>annihilation</span>
-      </div>
-      <p class="caption" id="eventCaption">…</p>
-      <div class="bottomline"><span id="cursorReadout">Move pointer onto canvas</span><span>Click in the body: add a lesion · drag a lesion: move it · [ ] change slice</span></div>
-    </section>
+<main id="simulationView" class="beginner-layout">
+<section class="start-guide" aria-label="Quick start"><div><span class="eyebrow">YOUR EXPERIMENT</span><h2>Make the tumor visible.</h2><p>1. Adjust efficiency or tumor size. 2. Let the scanner collect photon pairs. 3. Check the reconstructed image and detection score.</p></div><div class="notice"><strong>What to notice</strong><p>Lower efficiency usually makes the image noisier. Poorer timing admits more random pairs. Compare settings after similar numbers of decays.</p></div></section>
+<div class="experiment-layout"><div class="visual-column"><div class="primary-visuals"><section class="stage">
+<div class="topline"><strong>Scanner cross-section</strong><span id="phantomName">Phantom</span><span id="status">Running</span></div>
+<div class="startup-error" hidden="" id="simulationStartupError" role="alert">
+<strong>The simulation could not start.</strong>
+<p id="simulationStartupDetail">The JavaScript modules did not load.</p>
+<p>Open this project through <code>http://localhost:8000</code> instead of double-clicking <code>index.html</code>. If that does not fix it, check that <code>main.js</code>, <code>ui.js</code>, <code>engine/</code>, <code>recon/</code>, <code>render/</code> and <code>runtime/</code> are all in this project folder. Press F12 → Console for the exact error.</p>
+</div>
+<canvas aria-label="Transverse view of the scanner" height="900" id="sim" tabindex="0" width="900"></canvas>
 
-    <section class="stage" style="margin-top:16px">
-      <div class="topline"><span>Side view: ring stack, patient and gurney</span><span id="bedReadout"></span></div>
-      <canvas id="side" width="1040" height="460" aria-label="Side view of the scanner"></canvas>
-    </section>
 
-    <div class="results">
-      <div class="imgcard"><canvas id="image" width="420" height="420"></canvas></div>
-      <div class="imgcard"><canvas id="truth" width="420" height="420"></canvas></div>
-      <div class="imgcard"><canvas id="sinogram" width="420" height="420"></canvas></div>
-      <div class="imgcard wide"><canvas id="coronal" width="1040" height="420"></canvas></div>
-      <div class="imgcard wide"><canvas id="spectrum" width="1040" height="300"></canvas></div>
-    </div>
-  </div>
 
-  <aside>
-    <section class="panel">
-      <h2>Is the tumor detected?</h2>
-      <div id="detect" class="detect">Collecting data…</div>
-      <label class="check"><input type="checkbox" id="liveCnr" checked> Update every few seconds</label>
-      <div class="buttons two"><button id="measureCnr">Measure now</button><button id="gotoTumor">Show tumor slice</button></div>
-      <p class="note">CNR = (tumor ROI − mean of background ROIs) / spread of background ROIs, on a 1 cm slab through the
-        tumor centre, reconstructed with MLEM (6 iterations). Rose criterion: detected if CNR ≥ 5.</p>
-    </section>
+</section><div class="imgcard"><div class="image-heading">Reconstructed PET image</div><canvas height="420" id="image" width="420" aria-label="Reconstructed PET image"></canvas></div></div><p class="visual-caption">Left: detectors record coincident gamma rays. Right: their intersections are used to reconstruct tracer uptake. The image is simulated, not a clinical diagnosis.</p><details class="disclosure " id="controlsHelp"><summary>Controls, legend & keyboard shortcuts</summary><div class="disclosure-content"><div class="legend"><span><i class="line true"></i>True pair (solid)</span><span><i class="line scatter"></i>Scattered (dashed)</span><span><i class="line random"></i>Random (dotted)</span><span><i class="dot gold"></i>Decay</span><span><i class="dot orange"></i>Annihilation</span></div><p class="caption" id="eventCaption">…</p><p id="cursorReadout">Move pointer onto canvas</p><p>Pointer: click inside the body to add a lesion; drag a lesion to move it. Keyboard: Tab to move through controls; arrow keys adjust sliders; Space pauses/resumes; . steps one decay; R resets; D opens diagnostics; − / = changes speed; [ / ] changes slice. Use Add lesion and Remove added in Patient &amp; tracer for keyboard access.</p><p>Solid, dashed and dotted lines distinguish coincidence types as well as color.</p></div></details><details class="disclosure " id="truthView"><summary>Reveal the true tumor location</summary><div class="disclosure-content"><div class="imgcard"><div class="image-heading">True tracer distribution (answer key)</div><canvas height="420" id="truth" width="420"></canvas></div></div></details><details class="disclosure " id="extraViews"><summary>Explore more views & plots</summary><div class="disclosure-content"><section class="stage" style="margin-top:16px">
+<div class="topline"><span>Side view: ring stack, patient and gurney</span><span id="bedReadout"></span></div>
+<canvas aria-label="Side view of the scanner" height="460" id="side" width="1040"></canvas>
+</section><div class="results">
 
-    <section class="panel">
-      <h2>Patient &amp; tumor</h2>
-      <label for="phantom">Phantom</label>
-      <select id="phantom">
-        <option value="tumor" selected>Water cylinder with a tumor</option>
-        <option value="torso">Torso section with lesions</option>
-        <option value="uniform">Uniform water cylinder</option>
-        <option value="derenzo">Resolution rods (Derenzo)</option>
-        <option value="points">Point sources in air</option>
-      </select>
-      <label for="tumorRatio">Tumor uptake : background <output id="tumorRatioValue"></output></label>
-      <input type="range" id="tumorRatio" min="1" max="10" step="0.5" value="5">
-      <label for="tumorRadius">Tumor radius <output id="tumorRadiusValue"></output></label>
-      <input type="range" id="tumorRadius" min="0.3" max="2.5" step="0.1" value="1">
-      <label for="tumorZ">Tumor position along the patient, z <output id="tumorZValue"></output></label>
-      <input type="range" id="tumorZ" min="-10" max="10" step="0.5" value="0">
-      <label for="isotope">Tracer isotope</label>
-      <select id="isotope">
-        <option value="F-18" selected>F-18 (FDG)</option><option value="C-11">C-11</option>
-        <option value="Ga-68">Ga-68</option><option value="Rb-82">Rb-82</option>
-      </select>
-      <p class="note" id="isotopeName"></p>
-      <label for="activity">Activity in the patient <output id="activityValue"></output></label>
-      <input type="range" id="activity" min="0" max="100" step="1" value="82">
-      <div class="buttons two"><button id="addLesion">Add lesion</button><button id="removeLesions">Remove added</button></div>
-    </section>
 
-    <section class="panel">
-      <h2>Detector</h2>
-      <label for="efficiency">Detection efficiency per photon <output id="efficiencyValue"></output></label>
-      <input type="range" id="efficiency" min="5" max="100" step="5" value="80">
-      <span class="sliderHint">A pair is recorded with probability ε²</span>
-      <label for="ctr">Coincidence time resolution (FWHM) <output id="ctrValue"></output></label>
-      <input type="range" id="ctr" min="0" max="100" step="1" value="24">
-      <label class="check"><input type="checkbox" id="autoWindow" checked> Window = max flight-time difference + 2 × resolution</label>
-      <label for="coincWindow">Coincidence window <output id="coincWindowValue"></output></label>
-      <input type="range" id="coincWindow" min="1" max="60" step="0.5" value="4">
-      <p class="note">Without time-of-flight, the time resolution only sets the coincidence window: a wider window accepts
+<div class="imgcard"><canvas height="420" id="sinogram" width="420"></canvas></div>
+<div class="imgcard wide"><canvas height="420" id="coronal" width="1040"></canvas></div>
+<div class="imgcard wide"><canvas height="300" id="spectrum" width="1040"></canvas></div>
+</div></div></details></div><aside class="control-column"><section class="panel">
+<h2>Can you see the tumor?</h2>
+<div aria-live="polite" class="detect" id="detect" role="status">Collecting data…</div>
+<label class="check"><input checked="" id="liveCnr" type="checkbox"/> Update every few seconds</label>
+<div class="buttons two"><button id="measureCnr">Measure now</button><button id="gotoTumor">Show tumor slice</button></div>
+<p class="note">Detection score (CNR) ≥ 5 means the tumor passes this model’s visibility test. The score uses a 1 cm slab and six MLEM iterations, independently of the displayed reconstruction.</p>
+</section><section class="panel"><h3>Change the experiment</h3><label for="tumorRadius">Tumor radius <output id="tumorRadiusValue"></output></label>
+<input id="tumorRadius" max="2.5" min="0.3" step="0.1" type="range" value="1"/><label for="tumorRatio">Tumor uptake : background <output id="tumorRatioValue"></output></label>
+<input id="tumorRatio" max="10" min="1" step="0.5" type="range" value="5"/><label for="efficiency">Detection efficiency per photon <output id="efficiencyValue"></output></label>
+<input id="efficiency" max="100" min="5" step="5" type="range" value="80"/><p class="mini-hint">Lower efficiency means fewer usable photon pairs (approximately ε²).</p><label for="ctr">Coincidence time resolution (FWHM) <output id="ctrValue"></output></label>
+<input id="ctr" max="100" min="0" step="1" type="range" value="24"/><p class="mini-hint">Lower timing values distinguish photon pairs more precisely.</p><p class="mini-hint">Changing a detector or tumor setting starts a new acquisition. Let counts build before comparing images.</p><div class="quick-buttons"><button id="pause">Pause</button><button id="clear">Clear data</button><button id="reset">Reset scene</button></div></section></aside></div><section class="advanced-area"><h2>Advanced settings</h2><p>Optional controls for investigating the physics in more depth.</p><details class="disclosure " id="patientOptions"><summary>Patient & tracer</summary><div class="disclosure-content"><section class="panel">
+<h2>Patient &amp; tracer</h2>
+<label for="phantom">Phantom</label>
+<select id="phantom">
+<option selected="" value="tumor">Water cylinder with a tumor</option>
+<option value="torso">Torso section with lesions</option>
+<option value="uniform">Uniform water cylinder</option>
+<option value="derenzo">Resolution rods (Derenzo)</option>
+<option value="points">Point sources in air</option>
+</select>
+
+
+
+
+<label for="tumorZ">Tumor position along the patient, z <output id="tumorZValue"></output></label>
+<input id="tumorZ" max="10" min="-10" step="0.5" type="range" value="0"/>
+<label for="isotope">Tracer isotope</label>
+<select id="isotope">
+<option selected="" value="F-18">F-18 (FDG)</option><option value="C-11">C-11</option>
+<option value="Ga-68">Ga-68</option><option value="Rb-82">Rb-82</option>
+</select>
+<p class="note" id="isotopeName"></p>
+<label for="activity">Activity in the patient <output id="activityValue"></output></label>
+<input id="activity" max="100" min="0" step="1" type="range" value="82"/>
+<div class="buttons two"><button id="addLesion">Add lesion</button><button id="removeLesions">Remove added</button></div>
+</section></div></details><details class="disclosure " id="geometryOptions"><summary>Timing window & 3D coverage</summary><div class="disclosure-content"><section class="panel">
+<h2>Coincidence window</h2>
+
+
+
+
+
+<label class="check"><input checked="" id="autoWindow" type="checkbox"/> Window = max flight-time difference + 2 × resolution</label>
+<label for="coincWindow">Coincidence window <output id="coincWindowValue"></output></label>
+<input id="coincWindow" max="60" min="1" step="0.5" type="range" value="4"/>
+<p class="note">Without time-of-flight, the time resolution only sets the coincidence window: a wider window accepts
         more random pairs. The “TOF” reconstructions also use the measured Δt to place each event along its line.</p>
-    </section>
+</section><section class="panel">
+<h2>3D coverage</h2>
+<label for="rings">Detector rings <output id="ringsValue"></output></label>
+<input id="rings" max="48" min="1" step="1" type="range" value="24"/>
+<label for="ringMode">Accepted ring pairs</label>
+<select id="ringMode">
+<option selected="" value="3d">3D: all ring differences</option>
+<option value="septa">2D with septa: ring difference ≤ 3</option>
+<option value="2d">2D: same ring only</option>
+</select>
+<label for="beds">Bed (gurney) positions <output id="bedsValue"></output></label>
+<input id="beds" max="4" min="1" step="1" type="range" value="1"/>
+<label for="bedStep">Bed step <output id="bedStepValue"></output></label>
+<input id="bedStep" max="12" min="4" step="1" type="range" value="10"/>
+</section></div></details><details class="disclosure " id="physicsOptions"><summary>Physics switches & energy window</summary><div class="disclosure-content"><section class="panel">
+<h2>Photon and positron physics</h2>
+<label class="check"><input id="conservativeMode" type="checkbox"/> Conservative test mode (ideal, lossless photons)</label>
+<p class="note" hidden="" id="conservativeHelp">For event-level conservation checks, disable positron slowing, non-collinearity, attenuation and scatter; use a perfect photon detector (100% efficiency, no energy blur). Finite detector geometry and coincidence sorting still apply. There are no rigid-body collisions or restitution coefficient in this PET model.</p>
+<label class="check"><input checked="" id="attenuation" type="checkbox"/> Attenuation in the body (straight-line removal)</label>
+<label class="check"><input id="scatter" type="checkbox"/> Compton scatter in the body (COULD)</label>
+<label class="check"><input checked="" id="positronRange" type="checkbox"/> Positron range (Lab 9 engine)</label>
+<label class="check"><input checked="" id="nonCollinearity" type="checkbox"/> Photon non-collinearity (≈0.5°)</label>
+<label for="windowLow">Energy window <output id="windowLowValue"></output></label>
+<input id="windowLow" max="500" min="200" step="5" type="range" value="425"/>
+<label for="energyRes">Energy resolution <output id="energyResValue"></output></label>
+<input id="energyRes" max="25" min="4" step="1" type="range" value="12"/>
+</section></div></details><details class="disclosure " id="acquisitionOptions"><summary>Acquisition, image & display</summary><div class="disclosure-content"><section class="panel">
+<h2>Acquisition &amp; reconstruction</h2>
+<label for="speed">Simulation speed <output id="speedValue"></output></label>
+<input id="speed" max="6" min="0" step="1" type="range" value="4"/>
 
-    <section class="panel">
-      <h2>3D coverage</h2>
-      <label for="rings">Detector rings <output id="ringsValue"></output></label>
-      <input type="range" id="rings" min="1" max="48" step="1" value="24">
-      <label for="ringMode">Accepted ring pairs</label>
-      <select id="ringMode">
-        <option value="3d" selected>3D: all ring differences</option>
-        <option value="septa">2D with septa: ring difference ≤ 3</option>
-        <option value="2d">2D: same ring only</option>
-      </select>
-      <label for="beds">Bed (gurney) positions <output id="bedsValue"></output></label>
-      <input type="range" id="beds" min="1" max="4" step="1" value="1">
-      <label for="bedStep">Bed step <output id="bedStepValue"></output></label>
-      <input type="range" id="bedStep" min="4" max="12" step="1" value="10">
-    </section>
-
-    <section class="panel">
-      <h2>Physics</h2>
-      <label class="check"><input type="checkbox" id="conservativeMode"> Conservative test mode (ideal, lossless photons)</label>
-      <p class="note" id="conservativeHelp" hidden>For event-level conservation checks, disable positron slowing, non-collinearity, attenuation and scatter; use a perfect photon detector (100% efficiency, no energy blur). Finite detector geometry and coincidence sorting still apply. There are no rigid-body collisions or restitution coefficient in this PET model.</p>
-      <label class="check"><input type="checkbox" id="attenuation" checked> Attenuation in the body (straight-line removal)</label>
-      <label class="check"><input type="checkbox" id="scatter"> Compton scatter in the body (COULD)</label>
-      <label class="check"><input type="checkbox" id="positronRange" checked> Positron range (Lab 9 engine)</label>
-      <label class="check"><input type="checkbox" id="nonCollinearity" checked> Photon non-collinearity (≈0.5°)</label>
-      <label for="windowLow">Energy window <output id="windowLowValue"></output></label>
-      <input type="range" id="windowLow" min="200" max="500" step="5" value="425">
-      <label for="energyRes">Energy resolution <output id="energyResValue"></output></label>
-      <input type="range" id="energyRes" min="4" max="25" step="1" value="12">
-    </section>
-
-    <section class="panel">
-      <h2>Acquisition &amp; image</h2>
-      <label for="speed">Simulation speed <output id="speedValue"></output></label>
-      <input type="range" id="speed" min="0" max="6" step="1" value="5">
-      <div class="buttons"><button id="pause">Pause</button><button id="step">Step</button><button id="clear">Clear data</button><button id="reset">Reset scene</button></div>
-      <label for="recon">Reconstruction</label>
-      <select id="recon">
-        <option value="fbp" selected>Filtered backprojection</option>
-        <option value="bp">Simple backprojection</option>
-        <option value="mlem">MLEM (iterative)</option>
-        <option value="tof">TOF backprojection</option>
-        <option value="tofmlem">TOF MLEM (list mode)</option>
-      </select>
-      <label class="check"><input type="checkbox" id="attenCorr" checked> Attenuation correction (μ-map from “CT”)</label>
-      <label for="viewZ">Transverse slice shown, z <output id="viewZValue"></output></label>
-      <input type="range" id="viewZ" min="-12" max="12" step="0.5" value="0">
-      <label class="check"><input type="checkbox" id="lors" checked> Show lines of response</label>
-      <label class="check"><input type="checkbox" id="animate" checked> Slow-motion replay of one decay</label>
-      <label class="check"><input type="checkbox" id="inset" checked> Magnified positron track</label>
-      <div class="buttons two"><button id="downloadCSV">Download list-mode CSV</button></div>
-    </section>
-
-    <section class="panel">
-      <label class="check"><input type="checkbox" id="debugMode"> Debug physics diagnostics (D key, or ?debug=1)</label>
-      <p class="note">The model conserves four-momentum in each annihilation, not mechanical energy across an entire radioactive acquisition. These diagnostics refer to the most recent photon pair.</p>
-    </section>
-    <section class="panel" id="debugPanel" hidden>
-      <h2>Debug HUD — latest annihilation</h2>
-      <p class="note">Numerical energy-drift tolerance: 10⁻⁸%. Body count refers to the internal positron transport engine. No rigid-body collisions occur in PET photon transport.</p>
-      <div id="debugHud" aria-live="off"></div>
-    </section>
-    <section class="panel"><div id="hud"></div></section>
-  </aside>
-</main>
+<label for="recon">Reconstruction</label>
+<select id="recon">
+<option selected="" value="fbp">Filtered backprojection</option>
+<option value="bp">Simple backprojection</option>
+<option value="mlem">MLEM (iterative)</option>
+<option value="tof">TOF backprojection</option>
+<option value="tofmlem">TOF MLEM (list mode)</option>
+</select>
+<label class="check"><input checked="" id="attenCorr" type="checkbox"/> Attenuation correction (μ-map from “CT”)</label>
+<label for="viewZ">Transverse slice shown, z <output id="viewZValue"></output></label>
+<input id="viewZ" max="12" min="-12" step="0.5" type="range" value="0"/>
+<label class="check"><input checked="" id="lors" type="checkbox"/> Show lines of response</label>
+<label class="check"><input checked="" id="animate" type="checkbox"/> Slow-motion replay of one decay</label>
+<label class="check"><input id="inset" type="checkbox"/> Magnified positron track</label>
+<label class="check"><input id="showRoi" type="checkbox"/> Show tumor and background measurement regions on image</label>
+<div class="buttons two"><button id="downloadCSV">Download list-mode CSV</button></div>
+<button id="step">Step</button></section></div></details><details class="disclosure " id="diagnosticsOptions"><summary>Diagnostics & scan statistics</summary><div class="disclosure-content"><section class="panel">
+<label class="check"><input id="debugMode" type="checkbox"/> Debug physics diagnostics (D key, or ?debug=1)</label>
+<p class="note">The model conserves four-momentum in each annihilation, not mechanical energy across an entire radioactive acquisition. These diagnostics refer to the most recent photon pair.</p>
+</section><section class="panel" hidden="" id="debugPanel">
+<h2>Debug HUD — latest annihilation</h2>
+<p class="note">Numerical energy-drift tolerance: 10⁻⁸%. Body count refers to the internal positron transport engine. No rigid-body collisions occur in PET photon transport.</p>
+<div aria-live="off" id="debugHud"></div>
+</section><section class="panel"><div id="hud"></div></section></div></details></section><div class="project-links"><a href="README.md">README</a><a href="VALIDATION.md">Validation report</a><a href="https://github.com/blannerd-png/phys311/tree/main/project">Source repository</a></div></main>
 <section id="physicsView" class="physics-page" aria-labelledby="physicsTitle" hidden>
   <div class="physics-hero">
     <div class="physics-hero-copy">

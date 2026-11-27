@@ -5,6 +5,7 @@
   "scripts": {
     "test": "node tests.mjs && node week12_validation.mjs",
     "validate:week12": "node week12_validation.mjs",
-    "study": "node study.mjs"
+    "study": "node study.mjs",
+    "convergence": "node convergence.js"
   }
 }

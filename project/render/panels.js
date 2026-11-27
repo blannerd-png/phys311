@@ -22,7 +22,7 @@ function blit(ctx, img, nx, ny, w, h, vmax = null) {
   }
   const data = new ImageData(nx, ny);
   for (let i = 0; i < nx * ny; i++) {const [r, g, b] = hot(img[i] / (max || 1)); data.data[4 * i] = r; data.data[4 * i + 1] = g; data.data[4 * i + 2] = b; data.data[4 * i + 3] = 255;}
-  const off = new OffscreenCanvas(nx, ny); off.getContext('2d').putImageData(data, 0, 0);
+  const off = typeof OffscreenCanvas === 'function' ? new OffscreenCanvas(nx, ny) : Object.assign(document.createElement('canvas'), {width:nx,height:ny}); off.getContext('2d').putImageData(data, 0, 0);
   ctx.imageSmoothingEnabled = true; ctx.drawImage(off, 0, 0, w, h);
 }
 

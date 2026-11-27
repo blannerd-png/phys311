@@ -1,0 +1,278 @@
+{
+  "exactX": 0.17631937002719228,
+  "exactV": 0.7368062997280772,
+  "convergence": [
+    {
+      "dt": 0.016666666666666666,
+      "steps": 12,
+      "x": 0.1747837789356485,
+      "v": 0.7455261340494435,
+      "E": 0.27790460827535435,
+      "relativeDrift": 0.4441907834492913,
+      "momentumError": 0.25447386595055654,
+      "work": -0.22486541491132225,
+      "deltaE": -0.22209539172464565,
+      "ledgerResidual": 0.002770023186676601,
+      "maxIncrease": 0,
+      "errorFinest": 0.0015112616913437182,
+      "errorExact": 0.0015355910915437754,
+      "ratio": null,
+      "orderExact": null
+    },
+    {
+      "dt": 0.008333333333333333,
+      "steps": 24,
+      "x": 0.17554620665263276,
+      "v": 0.7413226275886866,
+      "E": 0.27477961908749726,
+      "relativeDrift": 0.4504407618250055,
+      "momentumError": 0.2586773724113134,
+      "work": -0.22665467031607528,
+      "deltaE": -0.22522038091250274,
+      "ledgerResidual": 0.0014342894035725418,
+      "maxIncrease": 0,
+      "errorFinest": 0.0007488339743594585,
+      "errorExact": 0.0007731633745595157,
+      "ratio": 2.0181532129821287,
+      "orderExact": 0.9899488932591574
+    },
+    {
+      "dt": 0.004166666666666667,
+      "steps": 48,
+      "x": 0.17593141189352512,
+      "v": 0.7391064188826193,
+      "E": 0.2731391492167449,
+      "relativeDrift": 0.45372170156651015,
+      "momentumError": 0.2608935811173807,
+      "work": -0.22759119051654206,
+      "deltaE": -0.22686085078325507,
+      "ledgerResidual": 0.0007303397332869832,
+      "maxIncrease": 0,
+      "errorFinest": 0.00036362873346709734,
+      "errorExact": 0.0003879581336671545,
+      "ratio": 2.0593366404781546,
+      "orderExact": 0.9948723244075647
+    },
+    {
+      "dt": 0.0020833333333333333,
+      "steps": 96,
+      "x": 0.17612504236051735,
+      "v": 0.7379672403852459,
+      "E": 0.2722978239409076,
+      "relativeDrift": 0.45540435211818475,
+      "momentumError": 0.26203275961475414,
+      "work": -0.22807076487872344,
+      "deltaE": -0.22770217605909238,
+      "ledgerResidual": 0.0003685888196310605,
+      "maxIncrease": 0,
+      "errorFinest": 0.00016999826647487448,
+      "errorExact": 0.00019432766667493162,
+      "ratio": 2.1390143617778667,
+      "orderExact": 0.9974096591478504
+    },
+    {
+      "dt": 0.0010416666666666667,
+      "steps": 192,
+      "x": 0.17622211847141286,
+      "v": 0.7373895418559726,
+      "E": 0.2718716682192806,
+      "relativeDrift": 0.4562566635614388,
+      "momentumError": 0.2626104581440274,
+      "work": -0.22831349670294387,
+      "deltaE": -0.2281283317807194,
+      "ledgerResidual": 0.0001851649222244789,
+      "maxIncrease": 0,
+      "errorFinest": 0.000072922155579358,
+      "errorExact": 0.00009725155577941513,
+      "ratio": 2.3312293105470916,
+      "orderExact": 0.9986980789829605
+    },
+    {
+      "dt": 0.0005208333333333333,
+      "steps": 384,
+      "x": 0.17627072224640464,
+      "v": 0.7370986203482652,
+      "E": 0.271657188059658,
+      "relativeDrift": 0.456685623880684,
+      "momentumError": 0.26290137965173477,
+      "work": -0.22843561405093715,
+      "deltaE": -0.228342811940342,
+      "ledgerResidual": 0.00009280211059514709,
+      "maxIncrease": 0,
+      "errorFinest": 0.00002431838058758462,
+      "errorExact": 0.00004864778078764176,
+      "ratio": 2.9986435699006737,
+      "orderExact": 0.9993473360549804
+    },
+    {
+      "dt": 0.00026041666666666666,
+      "steps": 768,
+      "x": 0.17629504062699222,
+      "v": 0.7369526357636706,
+      "E": 0.2715495936795107,
+      "relativeDrift": 0.4569008126409786,
+      "momentumError": 0.26304736423632935,
+      "work": -0.2284968625440226,
+      "deltaE": -0.2284504063204893,
+      "ledgerResidual": 0.000046456223533303254,
+      "maxIncrease": 0,
+      "errorFinest": 0,
+      "errorExact": 0.00002432940020005714,
+      "ratio": null,
+      "orderExact": 0.9996732401829245
+    }
+  ],
+  "free": [
+    {
+      "integrator": "EulerCromer",
+      "dt": 0.016666666666666666,
+      "steps": 3600,
+      "x": 59.999999999997875,
+      "v": 1,
+      "E": 0.5,
+      "relativeDrift": 0,
+      "momentumError": 0,
+      "work": 0,
+      "deltaE": 0,
+      "ledgerResidual": 0,
+      "maxIncrease": 0
+    },
+    {
+      "integrator": "VelocityVerlet",
+      "dt": 0.016666666666666666,
+      "steps": 3600,
+      "x": 59.999999999997875,
+      "v": 1,
+      "E": 0.5,
+      "relativeDrift": 0,
+      "momentumError": 0,
+      "work": 0,
+      "deltaE": 0,
+      "ledgerResidual": 0,
+      "maxIncrease": 0
+    }
+  ],
+  "stoppingCompare": [
+    {
+      "integrator": "Euler",
+      "dt": 0.004166666666666667,
+      "steps": 48,
+      "x": 0.17701846848151417,
+      "v": 0.7391064188826193,
+      "E": 0.2731391492167449,
+      "relativeDrift": 0.45372170156651015,
+      "momentumError": 0.2608935811173807,
+      "work": -0.22759119051654206,
+      "deltaE": -0.22686085078325507,
+      "ledgerResidual": 0.0007303397332869832,
+      "maxIncrease": 0
+    },
+    {
+      "integrator": "EulerCromer",
+      "dt": 0.004166666666666667,
+      "steps": 48,
+      "x": 0.17593141189352512,
+      "v": 0.7391064188826193,
+      "E": 0.2731391492167449,
+      "relativeDrift": 0.45372170156651015,
+      "momentumError": 0.2608935811173807,
+      "work": -0.22759119051654206,
+      "deltaE": -0.22686085078325507,
+      "ledgerResidual": 0.0007303397332869832,
+      "maxIncrease": 0
+    },
+    {
+      "integrator": "VelocityVerlet",
+      "dt": 0.004166666666666667,
+      "steps": 48,
+      "x": 0.17639889249512206,
+      "v": 0.7379672403852459,
+      "E": 0.2722978239409076,
+      "relativeDrift": 0.45540435211818475,
+      "momentumError": 0.26203275961475414,
+      "work": -0.22770345317428944,
+      "deltaE": -0.22770217605909238,
+      "ledgerResidual": 0.0000012771151970680794,
+      "maxIncrease": 0
+    }
+  ],
+  "scatterOnly": {
+    "dt": 0.001,
+    "steps": 1000,
+    "x": -0.06692653535326858,
+    "v": 0.9999999999999996,
+    "E": 0.49999999999999956,
+    "relativeDrift": 8.881784197001252e-16,
+    "momentumError": 0.32421161086043915,
+    "work": 0,
+    "deltaE": -4.440892098500626e-16,
+    "ledgerResidual": 4.440892098500626e-16,
+    "maxIncrease": 2.220446049250313e-16
+  },
+  "stress": [
+    {
+      "sigma": 0,
+      "maxStepEnergyGain": 0,
+      "maxRelativeEnergyChange": 0.4441907834492913,
+      "seedWorst": 0
+    },
+    {
+      "sigma": 0.35,
+      "maxStepEnergyGain": 0,
+      "maxRelativeEnergyChange": 0.43007623725923305,
+      "seedWorst": 0
+    },
+    {
+      "sigma": 1,
+      "maxStepEnergyGain": 0.016834164150981046,
+      "maxRelativeEnergyChange": 0.3419877740143977,
+      "seedWorst": 6
+    },
+    {
+      "sigma": 2,
+      "maxStepEnergyGain": 0.018473602061036543,
+      "maxRelativeEnergyChange": 0.1547087372056939,
+      "seedWorst": 6
+    }
+  ],
+  "pair": [
+    {
+      "label": "conservative",
+      "events": 100000,
+      "maxRelativeEnergy": 0,
+      "maxAbsoluteMomentum": 0,
+      "maxRelativeMomentum": null
+    },
+    {
+      "label": "nominal",
+      "events": 100000,
+      "maxRelativeEnergy": 2.2247866915528844e-16,
+      "maxAbsoluteMomentum": 8.77753304662202e-14,
+      "maxRelativeMomentum": 9.866856247195468e-13
+    },
+    {
+      "label": "extreme momentum stress",
+      "events": 100000,
+      "maxRelativeEnergy": 2.595587967872175e-16,
+      "maxAbsoluteMomentum": 1.4559018921847493e-12,
+      "maxRelativeMomentum": 1.5941038151960681e-15
+    }
+  ],
+  "idealAcquisition": {
+    "batches": 100,
+    "decays": 100000,
+    "seconds": 1.0015835265586288,
+    "counts": {
+      "decays": 100000,
+      "photonsDetected": 28965,
+      "singles": 28965,
+      "prompts": 3755,
+      "trues": 3755,
+      "scatters": 0,
+      "randoms": 0,
+      "multiples": 0,
+      "outsideFov": 1,
+      "ringDiff": 0
+    }
+  }
+}

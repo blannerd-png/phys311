@@ -1,0 +1,42 @@
+
+> test
+> node tests.mjs && node week12_validation.mjs
+
+┌─────────┬─────────────────────────────────────────────────┬────────┬───────────────────────────────────────────────────────────┐
+│ (index) │ check                                           │ result │ detail                                                    │
+├─────────┼─────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────────┤
+│ 0       │ 'Annihilation energy conserved'                 │ 'PASS' │ 'max |E1+E2−E| = 2.27e-13 keV'                            │
+│ 1       │ 'Annihilation momentum conserved'               │ 'PASS' │ 'max |p1+p2−p| = 7.53e-14 keV/c'                          │
+│ 2       │ 'Non-collinearity ≈ 0.5° FWHM (one projection)' │ 'PASS' │ '0.499°'                                                  │
+│ 3       │ 'Pair at rest: two 511 keV photons at 180°'     │ 'PASS' │ '511 keV, deviation 0.0e+0°'                              │
+│ 4       │ 'Emission isotropic in 3D'                      │ 'PASS' │ '⟨cos²θ⟩ = 0.3327 (expect 0.3333)'                        │
+│ 5       │ 'Compton backscatter energy = 170.3 keV'        │ 'PASS' │ '170.333 keV'                                             │
+│ 6       │ 'Klein–Nishina ⟨cos θ⟩ matches integral'        │ 'PASS' │ 'MC 0.2926 vs exact 0.2914'                               │
+│ 7       │ 'Beer–Lambert attenuation (straight line)'      │ 'PASS' │ '0.3826 vs exp(−μL) = 0.3829'                             │
+│ 8       │ 'Beer–Lambert attenuation (Woodcock)'           │ 'PASS' │ '0.3789 vs exp(−μL) = 0.3829'                             │
+│ 9       │ 'Positron mean range F-18'                      │ 'PASS' │ '0.555 mm vs 0.57 mm'                                     │
+│ 10      │ 'Positron mean range C-11'                      │ 'PASS' │ '0.997 mm vs 1.02 mm'                                     │
+│ 11      │ 'Positron mean range Ga-68'                     │ 'PASS' │ '2.625 mm vs 2.69 mm'                                     │
+│ 12      │ 'Positron mean range Rb-82'                     │ 'PASS' │ '5.589 mm vs 5.33 mm'                                     │
+│ 13      │ '3D line integral of μ (attenuation)'           │ 'PASS' │ '1.59553 vs numeric 1.59553'                              │
+│ 14      │ 'Emission density ∝ concentration (3D tumor)'   │ 'PASS' │ 'measured 5.03 : 1 (set 5 : 1)'                           │
+│ 15      │ 'Coincidence sorter'                            │ 'PASS' │ 'trues 1, multiples 1'                                    │
+│ 16      │ 'Trues ∝ efficiency²'                           │ 'PASS' │ 'trues(ε=0.5)/trues(ε=1) = 0.253 (expect 0.25)'           │
+│ 17      │ 'Randoms scale with activity'                   │ 'PASS' │ 'randoms per decay ×4.26 for activity ×5 (expect ≈5)'     │
+│ 18      │ 'Coarse timing keeps trues (low activity)'      │ 'PASS' │ 'trues 2028 → 2028 for CTR 0.4 → 8 ns'                    │
+│ 19      │ 'Coarse timing adds randoms (50 MBq)'           │ 'PASS' │ 'randoms 96 → 819, multiples 50 → 481, trues 1978 → 1670' │
+│ 20      │ 'FBP point source at (0, 0)'                    │ 'PASS' │ 'centroid (-0.004, -0.003) cm'                            │
+│ 21      │ 'FBP point source at (5, 0)'                    │ 'PASS' │ 'centroid (4.999, -0.005) cm'                             │
+│ 22      │ 'FBP point source at (10, 0)'                   │ 'PASS' │ 'centroid (10.000, 0.001) cm'                             │
+│ 23      │ 'MLEM preserves total counts'                   │ 'PASS' │ 'Σ A·x / Σ y = 0.9999998'                                 │
+│ 24      │ 'TOF places events at the source'               │ 'PASS' │ 'centroid (4.998, 0.001) cm'                              │
+│ 25      │ 'Lesion CNR measure'                            │ 'PASS' │ 'with lesion 11.1, without 1.8, 34 background ROIs'       │
+│ 26      │ 'Bed stepping covers an off-centre tumor'       │ 'PASS' │ 'events in tumor slab: 1 bed 0, 2 beds 150'               │
+│ 27      │ 'Seeded acquisition is reproducible'            │ 'PASS' │ 'identical counters'                                      │
+│ 28      │ 'No DOM in engine/ or recon/'                   │ 'PASS' │ 'clean'                                                   │
+└─────────┴─────────────────────────────────────────────────┴────────┴───────────────────────────────────────────────────────────┘
+PASS: 29 checks
+TEST 1: 20,000 events, max energy closure 2.2737e-13 keV (< 1e-9); max momentum closure 7.7536e-14 keV/c (< 1e-9) — PASS
+TEST 2: efficiency ε=0.5 gives 1170 trues, ε=1 gives 4617; ratio=0.25341 (expected 0.25 ± 0.02) — PASS
+TEST 3: fixed step, one wall-second at 30/60/120 render FPS → 60/60/60 ticks (60/60/60 expected) — PASS
+TEST 4: conservative mode disables all losses, 511+511 keV, energy closure 0.0000e+0 keV, momentum closure 0.0000e+0 keV/c — PASS

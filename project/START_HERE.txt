@@ -21,3 +21,11 @@ just saying 'Running'. Press F12 -> Console to see which file failed to load.
 
 The two views share one index.html and keep accumulated scanner data when you
 switch between them. No separate information.html page is required.
+
+WEEK 13 FINAL VERSION
+---------------------
+Read SUBMISSION_WEEK13.md for exact deadlines, local checks and deployment.
+The default interface now has four essential sliders; additional settings,
+plots and diagnostics are expandable. All original simulator modules are included.
+Use npm test and npm run convergence for numerical validation; see VALIDATION.md.
+Peer-review and presentation placeholders must be completed with real evidence.

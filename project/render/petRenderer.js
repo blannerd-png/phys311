@@ -42,7 +42,7 @@ export class PetRenderer {
     // Recent coincidences (LORs projected onto the transverse plane).
     if (flags.lors) {
       const ev = scanner.recent;
-      for (let i = 0; i < ev.length; i++) {
+      for (let i = Math.max(0, ev.length - 36); i < ev.length; i++) {
         const e = ev[i], [col, dash] = TYPE_STYLE[e.type];
         ctx.strokeStyle = col; ctx.setLineDash(dash); ctx.lineWidth = 1;
         ctx.globalAlpha = 0.08 + 0.5 * (i + 1) / ev.length;
@@ -59,7 +59,12 @@ export class PetRenderer {
       ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.moveTo(x - 8, y); ctx.lineTo(x + 8, y); ctx.moveTo(x, y - 8); ctx.lineTo(x, y + 8); ctx.stroke();
     }
     ctx.fillStyle = '#9aadc9'; ctx.font = `${Math.max(11, W / 70)}px system-ui`;
-    ctx.fillText(`Transverse view · slice z = ${viewZ.toFixed(1)} cm · ${cfg.crystals} crystals × ${cfg.rings} rings, R = ${R} cm`, 10, 18);
+    ctx.fillText(`Slice z = ${viewZ.toFixed(1)} cm`, 10, 18);
+    // Physical 10 cm scale in the transverse view (world coordinates are cm).
+    const bar = 10 * k, x0 = W - bar - 14, y0 = H - 19;
+    ctx.strokeStyle = '#e7f2ff'; ctx.lineWidth = 2; ctx.beginPath();
+    ctx.moveTo(x0, y0 - 4); ctx.lineTo(x0, y0 + 4); ctx.moveTo(x0, y0); ctx.lineTo(x0 + bar, y0); ctx.moveTo(x0 + bar, y0 - 4); ctx.lineTo(x0 + bar, y0 + 4); ctx.stroke();
+    ctx.fillStyle = '#e7f2ff'; ctx.textAlign = 'right'; ctx.fillText('10 cm', W - 14, y0 - 8); ctx.textAlign = 'left';
   }
 }
 
